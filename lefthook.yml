@@ -40,3 +40,15 @@
 #
 #     - script: "hello.go"
 #       runner: go run
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
+
+# prepare-commit-msg:
+#   commands:
+#     commitzen:
+#       interactive: true
+#       run: LEFTHOOK=0 pnpm cz
+
