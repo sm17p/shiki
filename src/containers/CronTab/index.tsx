@@ -12,10 +12,16 @@ import { Label } from "@/components/ui/label";
 import { MorphingText } from "@/components/magicui/morphing-text";
 import { DAYS_OF_WEEK } from "@/constants";
 import { Settings } from "lucide-react";
+import { useCallback } from "react";
 
 const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
 
 export function CronTab() {
+
+	const onSubmit = useCallback((event) => {
+		event.preventDefault();
+	}, []);
+
 	return (
 		<section className="px-4 py-5 cron-tab grid grid-cols-1 gap-5 border-b-5">
 			<div className="flex gap-2 justify-between">
