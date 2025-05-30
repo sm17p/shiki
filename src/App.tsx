@@ -1,8 +1,5 @@
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { CronTab } from "@/containers/CronTab";
 import { Gallery } from "@/containers/Gallery";
-import { Button } from "@/components/ui/button"
 
 // import "./index.css";
 import "./globals.css";

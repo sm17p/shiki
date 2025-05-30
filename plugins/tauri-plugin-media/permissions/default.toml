@@ -1,0 +1,14 @@
+# tauri-plugin-media/permissions/default.toml
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Default permissions for the media plugin"
+permissions = [
+  "allow-get-all-media",
+  "allow-check-media-permissions",
+  "allow-request-media-permissions",
+  # "mobile:readStorage", # Android <= 12
+  # "mobile:readMediaImages", # Android >= 13
+  # "mobile:readMediaVideo", # Android >= 13
+  # "ios:photoLibrary" # iOS permission name
+]

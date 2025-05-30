@@ -19,10 +19,16 @@ const buttonVariants = cva(
         default: "h-10 px-4 py-2",
         sm: "h-9 px-3",
         lg: "h-11 px-8",
-        icon: "size-10",
+        icon: "size-9 xs:size-10",
+      },
+      pressed: {
+        default: "",
+        true: "bg-emerald-500 text-main-foreground shadow-none",
+        false: "bg-sky-200 text-foreground border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
       },
     },
     defaultVariants: {
+      pressed: "default",
       variant: "default",
       size: "default",
     },
@@ -31,6 +37,7 @@ const buttonVariants = cva(
 
 function Button({
   className,
+  pressed,
   variant,
   size,
   asChild = false,
@@ -40,11 +47,12 @@ function Button({
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
+    
 
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant: pressed === true ? "noShadow" : variant, size, pressed, className, }))}
       {...props}
     />
   )

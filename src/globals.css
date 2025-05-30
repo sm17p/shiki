@@ -50,7 +50,13 @@
     font-weight: 600;
 } */
 
+@theme {
+  --breakpoint-xxs: 320px;
+  --breakpoint-xs: 375px;
+}
+
 :root {
+
 	--background: oklch(92.13% 0.0388 282.36);
 	--secondary-background: oklch(100% 0 0);
 	--foreground: oklch(0% 0 0);
