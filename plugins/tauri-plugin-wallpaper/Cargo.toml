@@ -1,0 +1,36 @@
+[package]
+name = "tauri-plugin-wallpaper"
+version = "0.1.0"
+authors = [ "You" ]
+description = ""
+edition = "2021"
+rust-version = "1.77.2"
+exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
+links = "tauri-plugin-wallpaper"
+
+[dependencies]
+# Required for all plugins
+tauri = { version = "2", features = ["inlined-js"] } # Use your current tauri version
+# Desktop-specific dependencies
+# Windows API bindings
+windows = { version = "0.52.0", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Foundation"] , optional = true}
+# macOS specific (if you decide to use direct Rust bindings, otherwise just FFI)
+# You might not need a specific crate if you bridge to Objective-C directly, or use core Rust
+# You might want to use cocoa/objc crates if you want to avoid raw C/ObjC FFI files.
+
+
+serde = "1.0"
+thiserror = "2"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build", "mobile"] } # Use your current tauri-plugin version
+
+[features]
+# By default, all features are enabled. Add specific features here if needed.
+# For example, to enable windows-rs only on Windows:
+default = ["windows_support", "linux_support", "mobile_support"] # Add specific features here
+
+# Platform-specific features
+windows_support = ["windows"] # This feature enables the 'windows' crate only on Windows
+linux_support = [] # No specific crates for Linux usually, just shell commands
+mobile_support = []
