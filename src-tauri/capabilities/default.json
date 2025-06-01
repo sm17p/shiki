@@ -5,12 +5,17 @@
   "windows": [
     "main"
   ],
-  "platforms": ["iOS", "android"],
+  "platforms": [
+    "iOS",
+    "android"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
     "store:default",
     "media:default",
-    "notification:default"
+    "notification:default",
+    "log:default",
+    "nfc:default"
   ]
 }

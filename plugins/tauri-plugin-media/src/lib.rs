@@ -32,16 +32,13 @@ impl<R: Runtime, T: Manager<R>> MediaExt<R> for T {
 
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("notification")
+    Builder::new("media")
         .invoke_handler(tauri::generate_handler![
-            commands::get_all_media,
+            commands::get_media_items,
             commands::check_media_permissions,
-            commands::request_media_permissions
+            commands::request_media_permissions,
+            commands::pick_folder
         ])
-        // .js_init_script(include_str!("init-iife.js").replace(
-        //     "__TEMPLATE_windows__",
-        //     if cfg!(windows) { "true" } else { "false" },
-        // ))
         .setup(|app, api| {
             #[cfg(mobile)]
             let media = mobile::init(app, api)?;

@@ -4,9 +4,10 @@ Default permissions for the media plugin
 
 #### This default permission set includes the following:
 
-- `allow-get-all-media`
+- `allow-get-media-items`
 - `allow-check-media-permissions`
 - `allow-request-media-permissions`
+- `allow-pick-folder`
 
 ## Permission Table
 
@@ -46,12 +47,12 @@ Denies the check_media_permissions command without any pre-configured scope.
 <tr>
 <td>
 
-`media:allow-get-all-media`
+`media:allow-get-media-items`
 
 </td>
 <td>
 
-Enables the get_all_media command without any pre-configured scope.
+Enables the get_media_items command without any pre-configured scope.
 
 </td>
 </tr>
@@ -59,12 +60,38 @@ Enables the get_all_media command without any pre-configured scope.
 <tr>
 <td>
 
-`media:deny-get-all-media`
+`media:deny-get-media-items`
 
 </td>
 <td>
 
-Denies the get_all_media command without any pre-configured scope.
+Denies the get_media_items command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`media:allow-pick-folder`
+
+</td>
+<td>
+
+Enables the pick_folder command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`media:deny-pick-folder`
+
+</td>
+<td>
+
+Denies the pick_folder command without any pre-configured scope.
 
 </td>
 </tr>

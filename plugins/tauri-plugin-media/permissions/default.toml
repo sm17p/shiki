@@ -4,9 +4,10 @@
 [default]
 description = "Default permissions for the media plugin"
 permissions = [
-  "allow-get-all-media",
+  "allow-get-media-items",
   "allow-check-media-permissions",
   "allow-request-media-permissions",
+  "allow-pick-folder",
   # "mobile:readStorage", # Android <= 12
   # "mobile:readMediaImages", # Android >= 13
   # "mobile:readMediaVideo", # Android >= 13

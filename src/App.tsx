@@ -5,7 +5,6 @@ import { Gallery } from "@/containers/Gallery";
 import "./globals.css";
 
 function App() {
-
   return (
     <main className="prose-lg min-h-screen w-screen flex flex-col">
       <CronTab />

@@ -3,23 +3,32 @@ package me.sm17p.shiki.media
 import android.Manifest
 import android.app.Activity
 import android.content.ContentUris
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Log
+import androidx.activity.result.ActivityResult
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+import androidx.documentfile.provider.DocumentFile
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import app.tauri.Logger
+import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
-import app.tauri.annotation.TauriPlugin
 import app.tauri.annotation.Permission // <--- ADD THIS IMPORT
+import app.tauri.annotation.PermissionCallback
+import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
-import app.tauri.plugin.Plugin
 import app.tauri.plugin.JSObject // <--- ADD THIS IMPORT
+import app.tauri.plugin.Plugin
 import com.google.gson.Gson
-
 import org.json.JSONArray
 import org.json.JSONObject
+
 
 @TauriPlugin(
     permissions = [
@@ -29,7 +38,8 @@ import org.json.JSONObject
     ]
 )
 class MediaPlugin(private val activity: Activity) : Plugin(activity) {
-
+    private var lastInvoke: Invoke? = null // Declare lastInvoke here
+    private val TAG: String = Logger.tags("MediaPlugin")
     @InvokeArg
     class MediaItem(
         val id: String,
@@ -42,129 +52,182 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         val duration: Long? = null
     )
 
+    @InvokeArg
+    data class MediaFolderUri(
+        val uri: String = ""
+    )
+
+    @PermissionCallback
+    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                // Permissions granted, re-launch the folder picker
+                Logger.info(TAG, "Pick #1");
+                pickFolder(lastInvoke!!)
+            } else {
+                lastInvoke?.reject("Permission required")
+                lastInvoke = null
+            }
+        }
+    }
+
+    @ActivityCallback
+    fun onFolderPickResult(invoke: Invoke, result: ActivityResult) {
+        try {
+            when (result.resultCode) {
+                Activity.RESULT_OK -> {
+                    val uri: Uri? = result.data?.data
+                    if (uri != null) {
+                        val contentResolver = activity.applicationContext.contentResolver
+                        val takeFlags: Int = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        contentResolver.takePersistableUriPermission(uri, takeFlags)
+
+                        val jsObj = JSObject()
+                        jsObj.put("uri", uri.toString())
+                        invoke.resolve(jsObj)
+                    } else {
+                        invoke.reject("Empty URI")
+                    }
+                }
+                Activity.RESULT_CANCELED -> invoke.reject("File picker cancelled")
+                else -> invoke.reject("Failed to pick files")
+            }
+        } catch (ex: java.lang.Exception) {
+            val message = ex.message ?: "Failed to read file pick result"
+            Logger.error(TAG, message, ex)
+            invoke.reject(message)
+        }
+    }
+
     @Command
-    fun getMediaItems(invoke: Invoke) {
-        if (!hasPermissions()) {
-            invoke.reject("Permissions not granted. Request READ_EXTERNAL_STORAGE or READ_MEDIA_IMAGES/VIDEO.")
+    fun pickFolder(invoke: Invoke) {
+        lastInvoke = invoke
+
+        // Check permissions (as before)
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+
+        val missingPermissions = permissions.filter {
+            ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(activity, missingPermissions.toTypedArray(), PERMISSION_REQUEST_CODE)
+            // The result will be handled in onRequestPermissionsResult
             return
         }
 
-        val mediaList = JSONArray()
-        val gson = Gson()
 
-        // Images
-        queryMedia(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(
-                MediaStore.Images.Media._ID,
-                MediaStore.Images.Media.DISPLAY_NAME,
-                // MediaStore.Images.Media.DATA, // Consider if you still need this for older Android versions' direct file paths
-                MediaStore.Images.Media.MIME_TYPE,
-                MediaStore.Images.Media.DATE_ADDED,
-                MediaStore.Images.Media.WIDTH,
-                MediaStore.Images.Media.HEIGHT
-            )
-        ) { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-            val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-            val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
-            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
-            val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.WIDTH)
-            val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.HEIGHT)
-
-            val id = cursor.getLong(idColumn)
-            val displayName = cursor.getString(displayNameColumn)
-            val mimeType = cursor.getString(mimeTypeColumn)
-            val dateAdded = cursor.getLong(dateAddedColumn)
-            val width = cursor.getInt(widthColumn)
-            val height = cursor.getInt(heightColumn)
-
-            val contentUri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-
-            val item = MediaItem(
-                id = id.toString(),
-                displayName = displayName,
-                path = contentUri.toString(),
-                mimeType = mimeType,
-                dateAdded = dateAdded,
-                width = width,
-                height = height
-                // duration is null for images
-            )
-            mediaList.put(JSONObject(gson.toJson(item)))
-        }
-
-        // Videos
-        queryMedia(
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            arrayOf(
-                MediaStore.Video.Media._ID,
-                MediaStore.Video.Media.DISPLAY_NAME,
-                // MediaStore.Video.Media.DATA, // Consider if you still need this for older Android versions' direct file paths
-                MediaStore.Video.Media.MIME_TYPE,
-                MediaStore.Video.Media.DATE_ADDED,
-                MediaStore.Video.Media.WIDTH,
-                MediaStore.Video.Media.HEIGHT,
-                MediaStore.Video.Media.DURATION
-            )
-        ) { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
-            val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
-            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
-            val widthColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
-            val heightColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
-            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
-
-            val id = cursor.getLong(idColumn)
-            val displayName = cursor.getString(displayNameColumn)
-            val mimeType = cursor.getString(mimeTypeColumn)
-            val dateAdded = cursor.getLong(dateAddedColumn)
-            val width = cursor.getInt(widthColumn)
-            val height = cursor.getInt(heightColumn)
-            val duration = cursor.getLong(durationColumn)
-
-            val contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
-
-            val item = MediaItem(
-                id = id.toString(),
-                displayName = displayName,
-                path = contentUri.toString(),
-                mimeType = mimeType,
-                dateAdded = dateAdded,
-                width = width,
-                height = height,
-                duration = duration
-            )
-            mediaList.put(JSONObject(gson.toJson(item)))
-        }
-
-        // Resolve by wrapping the JSONArray in a JSObject
-        invoke.resolve(JSObject().put("items", mediaList)) // <--- FIXED
+        // Launch folder picker
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        handle?.startActivityForResult(invoke, intent, "onFolderPickResult")
     }
 
-    private fun queryMedia(
-        collection: android.net.Uri,
-        projection: Array<String>,
-        processCursor: (android.database.Cursor) -> Unit
-    ) {
-        val sortOrder = "${MediaStore.MediaColumns.DATE_ADDED} DESC"
+    @Command
+    fun getMediaItems(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(MediaFolderUri::class.java)
+            val treeUri = args.uri.toUri()
+            
+            val mediaList = JSONArray()
+            val gson = Gson()
+            
+            // Use DocumentFile instead of MediaStore
+            val documentFile = DocumentFile.fromTreeUri(activity, treeUri)
+            
+            if (documentFile != null && documentFile.isDirectory) {
+                traverseDirectory(documentFile, mediaList, gson)
+            } else {
+                invoke.reject("Invalid or inaccessible folder")
+                return
+            }
+            
+            val result = JSObject()
+            result.put("media", mediaList)
+            invoke.resolve(result)
+            
+        } catch (e: Exception) {
+            Logger.error(TAG, "Error processing media item", e)
+            invoke.reject("Failed to get media: ${e.message}")
+        }
+    }
 
-        activity.contentResolver.query(
-            collection,
-            projection,
-            null,
-            null,
-            sortOrder
-        )?.use { cursor ->
-            while (cursor.moveToNext()) {
-                try {
-                    processCursor(cursor)
-                } catch (e: Exception) {
-                    Log.e("MediaPlugin", "Error processing media item", e)
+    private fun traverseDirectory(directory: DocumentFile, mediaList: JSONArray, gson: Gson) {
+        try {
+            directory.listFiles().forEach { file ->
+                if (file.isDirectory) {
+                    // Recursively traverse subdirectories if needed
+                    traverseDirectory(file, mediaList, gson)
+                } else if (file.isFile && isMediaFile(file)) {
+                    val item = createMediaItemFromDocumentFile(file)
+                    mediaList.put(JSONObject(gson.toJson(item)))
                 }
             }
+        } catch (e: Exception) {
+            Logger.error(TAG, "Error traversing directory: ${directory.uri}", e)
         }
+    }
+
+    private fun isMediaFile(file: DocumentFile): Boolean {
+        val mimeType = file.type ?: return false
+        return mimeType.startsWith("image/") || mimeType.startsWith("video/")
+    }
+
+    private fun createMediaItemFromDocumentFile(file: DocumentFile): MediaItem {
+        var width = 0
+        var height = 0
+        var duration: Long? = null
+        
+        try {
+            // Get metadata for images
+            if (file.type?.startsWith("image/") == true) {
+                activity.contentResolver.openInputStream(file.uri)?.use { inputStream ->
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    BitmapFactory.decodeStream(inputStream, null, options)
+                    width = options.outWidth
+                    height = options.outHeight
+                }
+            }
+            
+            // Get metadata for videos
+            if (file.type?.startsWith("video/") == true) {
+                val retriever = MediaMetadataRetriever()
+                try {
+                    retriever.setDataSource(activity, file.uri)
+                    duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                    width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                    height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                } catch (e: Exception) {
+                    Logger.error(TAG, "Failed to extract video metadata for ${file.name}", e)
+                } finally {
+                    try {
+                        retriever.release()
+                    } catch (e: Exception) {
+                        Logger.error(TAG, "Failed to release MediaMetadataRetriever", e)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(TAG, "Failed to extract metadata for ${file.name}", e)
+        }
+        
+        return MediaItem(
+            id = file.uri.toString(),
+            displayName = file.name ?: "Unknown",
+            path = file.uri.toString(),
+            mimeType = file.type,
+            dateAdded = file.lastModified(),
+            width = width,
+            height = height,
+            duration = duration
+        )
     }
 
     @Command

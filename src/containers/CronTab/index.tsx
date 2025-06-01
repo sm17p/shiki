@@ -2,25 +2,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { convertFileSrc } from "@tauri-apps/api/core";
 // import { MorphingText } from "@/components/magicui/morphing-text";
 import { DAYS_OF_WEEK } from "@/constants";
-// import {
-// 	checkPermissions,
-// 	requestPermissions,
-// 	getMediaItems,
-// } from "tauri-plugin-media-api";
-import { Settings } from "lucide-react";
-import { useCallback } from "react";
 import {
-	// isPermissionGranted,
-	requestPermission,
-	sendNotification,
-} from "@tauri-apps/plugin-notification";
+	checkPermissions,
+	type FolderPath,
+	getMediaItems,
+	pickFolder,
+	requestPermissions,
+} from "tauri-plugin-media-api";
+import { Settings } from "lucide-react";
+import { useCallback, useEffect, useState, } from "react";
+import { store } from "@/store";
 
 const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
+const folders = await store.get("folders");
+const files = await store.get("files");
 
 export function CronTab() {
-	// const [media, setMedia] = useState();
+	const [media, setMedia] = useState<FolderPath>();
+	console.log("🚀 ~ CronTab ~ media:", media?.toString(), folders?.toString());
+	
 
 	const onSubmit = useCallback((event) => {
 		event.preventDefault();
@@ -28,17 +31,31 @@ export function CronTab() {
 
 	const onClick = async () => {
 		// Do you have permission to send a notification?
-		// let permissionGranted = await isPermissionGranted();
-
-		// If not we need to request it
-		const permission = await requestPermission();
-		const permissionGranted = permission === "granted";
-
-		// Once permission has been granted we can send the notification
-		if (permissionGranted) {
-			sendNotification({ title: "Tauri", body: "Tauri is awesome!" });
+		let hasPermission = await checkPermissions();
+		if (!hasPermission.granted) {
+			hasPermission = await requestPermissions();
+		}
+		console.log("🚀 ~ onClick ~ hasPermission:", );
+		if (hasPermission?.granted) {
+			console.log("🚀 ~ onClick ~ hasPermission: inside", hasPermission?.granted);
+			const media = await pickFolder();
+			console.log("🚀 ~ onClick ~ media:", media);
+			store.set("folders", [media.uri]);
+			setMedia(media);
 		}
 	};
+
+	useEffect(() => {
+		if (Array.isArray(folders)) {
+			for (const el of folders) {
+				console.log("🚀 MediaPlugin ~ useEffect ~ el:", el);
+				// getMediaItems(el).then(res => {
+				// 	store.set("files", [...res.media]);
+				// })
+			}
+
+		}
+	}, []);
 
 	return (
 		<section className="px-4 py-5 cron-tab grid grid-cols-1 gap-5 border-b-5">
@@ -109,7 +126,13 @@ export function CronTab() {
 					</form>
 				</CardContent>
 			</Card>
-			{/* {JSON.stringify(media)} */}
+			{files.map(v => (
+				<>
+					<h2 className="wrap-anywhere">{convertFileSrc(v.path)}</h2>
+					<img className="border-2 border-amber-600" src={convertFileSrc(v.path)} alt="" width={v.width} height={v.height} />
+				</>
+				)
+			)}
 		</section>
 	);
 }
