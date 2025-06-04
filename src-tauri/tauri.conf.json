@@ -13,15 +13,19 @@
     "windows": [
       {
         "title": "shiki",
-        "width": 800,
-        "height": 600
+        "fullscreen": false,
+        "resizable": true,
+        "width": 390,
+        "height": 844
       }
     ],
     "security": {
-      "assetProtocol": {
-        "enable": true
-    },
-      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost"
+      "csp": {
+        "default-src": "'self' ipc: http://ipc.localhost",
+        "style-src": "'unsafe-inline' 'self'",
+        "img-src": "'self' shiki: http://shiki.localhost blob: data:"
+
+      }
     }
   },
   "bundle": {

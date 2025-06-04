@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 use tauri::{AppHandle, Runtime, plugin::{PluginApi, PluginHandle}};
 use serde_json;
 
-use crate::models::{MediaExt as ModelsMediaExt, MediaResponse, PermissionResult, FolderPath};
+use crate::models::{MediaExt as ModelsMediaExt, MediaResponse, PermissionResult, FolderPath, ImageLoadRequest, ImageLoadResponse};
 
 // use crate::android;
 // use crate::ios;
@@ -51,6 +51,12 @@ impl<R: Runtime> ModelsMediaExt<R> for Media<R> {
     fn pick_folder(&self) -> Result<FolderPath> {
         self.0
             .run_mobile_plugin("pickFolder", serde_json::Value::Null)
+            .map_err(Into::into)
+    }
+
+    fn load_image_data(&self, args: ImageLoadRequest) -> Result<ImageLoadResponse> {
+        self.0
+            .run_mobile_plugin("loadImageData", args)
             .map_err(Into::into)
     }
 }

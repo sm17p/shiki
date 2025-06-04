@@ -10,6 +10,7 @@ mod error;
 #[cfg(mobile)]
 mod mobile;
 mod models;
+mod scheme;
 
 pub use crate::models::{MediaExt as ModelsMediaExt, MediaItem}; // Alias to avoid name collision with your top-level MediaExt trait
 
@@ -17,6 +18,9 @@ pub use crate::models::{MediaExt as ModelsMediaExt, MediaItem}; // Alias to avoi
 use desktop::Media;
 #[cfg(mobile)]
 use mobile::Media;
+
+use scheme::handle_shiki_protocol;
+
 
 // / Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the media APIs.
 pub trait MediaExt<R: Runtime> {
@@ -39,6 +43,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::request_media_permissions,
             commands::pick_folder
         ])
+        .register_asynchronous_uri_scheme_protocol("shiki", handle_shiki_protocol)
         .setup(|app, api| {
             #[cfg(mobile)]
             let media = mobile::init(app, api)?;

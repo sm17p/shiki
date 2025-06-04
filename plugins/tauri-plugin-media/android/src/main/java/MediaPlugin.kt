@@ -2,33 +2,41 @@ package me.sm17p.shiki.media
 
 import android.Manifest
 import android.app.Activity
-import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.result.ActivityResult
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import app.tauri.Logger
 import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
-import app.tauri.annotation.Permission // <--- ADD THIS IMPORT
+import app.tauri.annotation.Permission
 import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
-import app.tauri.plugin.JSObject // <--- ADD THIS IMPORT
+import app.tauri.plugin.JSArray
+import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import com.google.gson.Gson
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.URLDecoder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.nio.charset.StandardCharsets
 
+private val pluginScope = CoroutineScope(Dispatchers.Main) // Or Dispatchers.Main if you have a plugin lifecycle class
 
 @TauriPlugin(
     permissions = [
@@ -40,8 +48,9 @@ import org.json.JSONObject
 class MediaPlugin(private val activity: Activity) : Plugin(activity) {
     private var lastInvoke: Invoke? = null // Declare lastInvoke here
     private val TAG: String = Logger.tags("MediaPlugin")
+
     @InvokeArg
-    class MediaItem(
+    data class MediaItem(
         val id: String,
         val displayName: String?,
         val path: String,
@@ -56,6 +65,125 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
     data class MediaFolderUri(
         val uri: String = ""
     )
+
+    @InvokeArg
+    data class ImageLoadRequest(
+        val uri: String = "",
+        val thumbnail: Boolean = false,
+        val maxWidth: Int? = null,
+        val maxHeight: Int? = null
+    )
+
+    data class ImageLoadResponse(
+        val data: List<Byte> = emptyList(),
+        val mimeType: String = "",
+        val width: Int = 0,
+        val height: Int = 0
+    )
+
+    @Command
+    fun loadImageData(invoke: Invoke) {
+        pluginScope.launch(Dispatchers.IO) {
+            try {
+                val args = invoke.parseArgs(ImageLoadRequest::class.java)
+                val response = loadImageFromContentUri(args)
+
+                Logger.info(TAG, "Image Picking ${args.uri}")
+
+                val result = JSObject().apply {
+                    val jsArrayData = JSArray().apply {
+                        response.data.forEach { byte ->
+                            // JSArray.put() typically takes Java types, Byte will be boxed to Integer
+                            // and correctly mapped to a JSON number.
+                            put(byte.toInt() and 0xFF) // Convert Byte to Int to avoid potential issues with signed bytes
+                        }
+                    }
+                    put("data", jsArrayData)
+                    put("mimeType", response.mimeType)
+                    put("width", response.width)
+                    put("height", response.height)
+                }
+
+                Logger.info(TAG, "Image Sending $result")
+
+                invoke.resolve(result)
+            } catch (e: Exception) {
+                Logger.error(TAG, "Failed to load image: ${e.message}", e)
+                invoke.reject("Failed to load image: ${e.message}")
+            }
+        }
+    }
+
+    private fun decodeUrlString(encodedUrl: String): String {
+        // It's crucial to specify the character encoding, usually UTF-8
+        return URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
+    }
+
+    // Update your existing loadImageData method to work with the new structure
+    private fun loadImageFromContentUri(request: ImageLoadRequest): ImageLoadResponse {
+        Logger.info(TAG, "Received URI string: ${request.uri}") // Add this line
+        val uri = decodeUrlString(request.uri).toUri()
+        Logger.info(TAG, "Parsed URI object: $uri")
+        val inputStream: InputStream = activity.applicationContext.contentResolver.openInputStream(uri)
+            ?: throw Exception("Failed to open input stream for URI: ${request.uri}")
+
+        return inputStream.use { stream ->
+            val originalBitmap = BitmapFactory.decodeStream(stream)
+                ?: throw Exception("Failed to decode bitmap from stream")
+
+            val processedBitmap = when {
+                request.thumbnail -> createThumbnail(originalBitmap, 300, 300)
+                request.maxWidth != null || request.maxHeight != null -> {
+                    resizeBitmap(originalBitmap, request.maxWidth, request.maxHeight)
+                }
+                else -> originalBitmap
+            }
+
+            val outputStream = ByteArrayOutputStream()
+            processedBitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+            val imageDataBytes = outputStream.toByteArray()
+            val imageDataList = imageDataBytes.toList()
+
+            ImageLoadResponse(
+                data = imageDataList,
+                mimeType = "image/jpeg",
+                width = processedBitmap.width,
+                height = processedBitmap.height
+            )
+        }
+    }
+
+    // Update your existing createThumbnail method
+    private fun createThumbnail(bitmap: Bitmap, maxWidth: Int, maxHeight: Int): Bitmap {
+        val ratio = minOf(
+            maxWidth.toFloat() / bitmap.width,
+            maxHeight.toFloat() / bitmap.height
+        )
+
+        val width = (ratio * bitmap.width).toInt()
+        val height = (ratio * bitmap.height).toInt()
+
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
+    // Add this new method for custom resizing
+    private fun resizeBitmap(bitmap: Bitmap, maxWidth: Int?, maxHeight: Int?): Bitmap {
+        val currentWidth = bitmap.width
+        val currentHeight = bitmap.height
+
+        if (maxWidth == null && maxHeight == null) {
+            return bitmap
+        }
+
+        val scaleX = maxWidth?.let { it.toFloat() / currentWidth } ?: Float.MAX_VALUE
+        val scaleY = maxHeight?.let { it.toFloat() / currentHeight } ?: Float.MAX_VALUE
+        val scale = minOf(scaleX, scaleY, 1.0f) // Don't upscale
+
+        val newWidth = (currentWidth * scale).toInt()
+        val newHeight = (currentHeight * scale).toInt()
+
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
+    }
 
     @PermissionCallback
     fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -133,13 +261,15 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         try {
             val args = invoke.parseArgs(MediaFolderUri::class.java)
             val treeUri = args.uri.toUri()
+            Logger.info(TAG, "1. Start is ${treeUri.toString()}")
             
             val mediaList = JSONArray()
             val gson = Gson()
             
             // Use DocumentFile instead of MediaStore
             val documentFile = DocumentFile.fromTreeUri(activity, treeUri)
-            
+            Logger.info(TAG, "2. DocumentFile is ${documentFile?.uri.toString()}")
+
             if (documentFile != null && documentFile.isDirectory) {
                 traverseDirectory(documentFile, mediaList, gson)
             } else {
@@ -182,6 +312,7 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         var width = 0
         var height = 0
         var duration: Long? = null
+        Logger.info(TAG, "3. Foundfile is ${file.uri.toString()}")
         
         try {
             // Get metadata for images
@@ -217,6 +348,8 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         } catch (e: Exception) {
             Logger.error(TAG, "Failed to extract metadata for ${file.name}", e)
         }
+
+        Logger.info("TAG", "File is ${file.uri.toString()}")
         
         return MediaItem(
             id = file.uri.toString(),

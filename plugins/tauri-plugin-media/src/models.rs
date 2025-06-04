@@ -22,6 +22,7 @@ pub trait MediaExt<R: Runtime> {
     fn request_permissions(&self) -> Result<PermissionResult>;
     fn check_permissions(&self) -> Result<PermissionResult>;
     fn pick_folder(&self) -> Result<FolderPath>;
+    fn load_image_data(&self, args: ImageLoadRequest) -> Result<ImageLoadResponse>;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,5 +41,25 @@ pub struct FolderPath {
 #[serde(rename_all = "camelCase")] // Important! This maps "granted" in Kotlin to "granted" in Rust
 pub struct MediaResponse {
     pub media: Vec<MediaItem>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageLoadRequest {
+    pub uri: String,
+    pub thumbnail: bool,
+    #[serde(rename = "maxWidth")]
+    pub max_width: Option<u32>,
+    #[serde(rename = "maxHeight")]
+    pub max_height: Option<u32>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageLoadResponse {
+    pub data: Vec<u8>,
+    pub mime_type: String,
+    width: u32,
+    height: u32,
 }
 

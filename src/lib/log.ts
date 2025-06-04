@@ -1,5 +1,6 @@
-import { warn, debug, trace, info, error, attachConsole } from '@tauri-apps/plugin-log';
+import { warn, debug, trace, info, error } from '@tauri-apps/plugin-log';
 
+// call detach() if you do not want to print logs to the console anymore
 function forwardConsole(
   fnName: 'log' | 'debug' | 'info' | 'warn' | 'error',
   logger: (message: string) => Promise<void>
@@ -14,7 +15,6 @@ function forwardConsole(
 
 
 export const init = async () => {
-    // const detach = await attachConsole();
     forwardConsole('log', trace);
     forwardConsole('debug', debug);
     forwardConsole('info', info);

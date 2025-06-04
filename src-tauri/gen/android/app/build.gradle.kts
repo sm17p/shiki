@@ -1,5 +1,6 @@
 import java.util.Properties
 
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -24,6 +25,21 @@ android {
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
+    signingConfigs {
+        create("release") {
+            val keystoreProperties = Properties().apply {
+                val propFile = rootProject.file("key.properties")
+                if (propFile.exists()) {
+                    propFile.inputStream().use { load(it) }
+                }
+            }
+
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["password"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["password"] as String
+        }
+    }
     buildTypes {
         getByName("debug") {
             manifestPlaceholders["usesCleartextTraffic"] = "true"
@@ -43,6 +59,8 @@ android {
                     .plus(getDefaultProguardFile("proguard-android-optimize.txt"))
                     .toList().toTypedArray()
             )
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     kotlinOptions {

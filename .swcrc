@@ -19,7 +19,7 @@
                 "runtime": "automatic"
             }
         },
-        "target": "es5",
+        "target": "esnext",
         "loose": false,
         "externalHelpers": false,
         "minify": {
@@ -32,9 +32,7 @@
                 "toplevel": false,
                 "keep_classnames": true,
                 "keep_fnames": true,
-                "keep_private_props": false,
-                "ie8": false,
-                "safari10": true
+                "keep_private_props": false
             }
         }
     },

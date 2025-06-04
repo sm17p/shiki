@@ -30,5 +30,7 @@ pub async fn request_media_permissions<R: Runtime>(
 pub async fn pick_folder<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<FolderPath> {
+    log::info!("Picking Folder");
     app.media().pick_folder()
 }
+

@@ -2,28 +2,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import ImageCard from "@/components/ui/image-card";
+
 // import { MorphingText } from "@/components/magicui/morphing-text";
 import { DAYS_OF_WEEK } from "@/constants";
 import {
 	checkPermissions,
-	type FolderPath,
 	getMediaItems,
+	ImageLoader,
+	type MediaItem,
 	pickFolder,
 	requestPermissions,
 } from "tauri-plugin-media-api";
 import { Settings } from "lucide-react";
-import { useCallback, useEffect, useState, } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { store } from "@/store";
 
 const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
-const folders = await store.get("folders");
-const files = await store.get("files");
 
 export function CronTab() {
-	const [media, setMedia] = useState<FolderPath>();
-	console.log("🚀 ~ CronTab ~ media:", media?.toString(), folders?.toString());
-	
+	const [folders, setFolder] = useState([]);
+	const [files, setFiles] = useState<MediaItem[]>([]);
 
 	const onSubmit = useCallback((event) => {
 		event.preventDefault();
@@ -35,26 +34,24 @@ export function CronTab() {
 		if (!hasPermission.granted) {
 			hasPermission = await requestPermissions();
 		}
-		console.log("🚀 ~ onClick ~ hasPermission:", );
 		if (hasPermission?.granted) {
-			console.log("🚀 ~ onClick ~ hasPermission: inside", hasPermission?.granted);
 			const media = await pickFolder();
-			console.log("🚀 ~ onClick ~ media:", media);
 			store.set("folders", [media.uri]);
-			setMedia(media);
+			getMediaItems(media.uri).then((res) => {
+				// biome-ignore lint/complexity/noForEach: <explanation>
+				res.media.forEach((item) =>
+					console.log("MediaPlugin: ", JSON.stringify(item)),
+				);
+				store.set("files", [...res.media]);
+				setFiles(res.media);
+			});
 		}
 	};
 
 	useEffect(() => {
-		if (Array.isArray(folders)) {
-			for (const el of folders) {
-				console.log("🚀 MediaPlugin ~ useEffect ~ el:", el);
-				// getMediaItems(el).then(res => {
-				// 	store.set("files", [...res.media]);
-				// })
-			}
-
-		}
+		store.get("files").then((result) => {
+			setFiles(result);
+		});
 	}, []);
 
 	return (
@@ -126,13 +123,22 @@ export function CronTab() {
 					</form>
 				</CardContent>
 			</Card>
-			{files.map(v => (
-				<>
-					<h2 className="wrap-anywhere">{convertFileSrc(v.path)}</h2>
-					<img className="border-2 border-amber-600" src={convertFileSrc(v.path)} alt="" width={v.width} height={v.height} />
-				</>
-				)
-			)}
+			<div className="grid grid-cols-2">
+				{files?.map((v) => (
+					<div key={v.displayName}>
+						<ImageCard
+							key={v.displayName}
+							caption={v.displayName!}
+							imageUrl={ImageLoader.getThumbnailUrl(v.path)}
+						/>
+						{/* <ImageCard
+						key={v.displayName}
+						caption={v.displayName!}
+						imageUrl={ImageLoader.getFullImageUrl(v.path)}
+					/> */}
+					</div>
+				))}
+			</div>
 		</section>
 	);
 }
