@@ -1,0 +1,24 @@
+[tools]
+node = "24"
+pnpm = "10.30.2"
+rust = "stable"
+java = "temurin-21"
+
+[tasks.check-android-toolchain]
+description = "Print detected Android SDK/NDK versions for comparison with README reference"
+run = [
+  "echo \"sdk.dir (from local.properties, if present):\"",
+  "grep '^sdk.dir=' local.properties || echo '  (not set)'",
+  "echo",
+  "echo \"ndk.dir (from local.properties, if present):\"",
+  "grep '^ndk.dir=' local.properties || echo '  (not set)'",
+  "echo",
+  "echo \"Android SDK location (macOS default): $HOME/Library/Android/sdk\"",
+  "echo",
+  "echo \"Platform-tools version (if adb present):\"",
+  "if command -v adb >/dev/null 2>&1; then adb --version || true; else echo '  adb not found on PATH'; fi",
+  "echo",
+  "echo \"NDK versions under $HOME/Library/Android/sdk/ndk (if any):\"",
+  "if [ -d \"$HOME/Library/Android/sdk/ndk\" ]; then ls \"$HOME/Library/Android/sdk/ndk\" || true; else echo '  NDK dir not found'; fi"
+]
+
