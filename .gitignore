@@ -37,3 +37,5 @@ devenv.local.nix
 
 # android
 .android/*
+
+target/

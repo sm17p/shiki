@@ -26,18 +26,22 @@ android {
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
     signingConfigs {
-        create("release") {
+        val keyPropFile = rootProject.file("key.properties")
+        if (keyPropFile.exists()) {
             val keystoreProperties = Properties().apply {
-                val propFile = rootProject.file("key.properties")
-                if (propFile.exists()) {
-                    propFile.inputStream().use { load(it) }
+                keyPropFile.inputStream().use { load(it) }
+            }
+            val alias = keystoreProperties.getProperty("keyAlias")
+            val password = keystoreProperties.getProperty("password")
+            val storePath = keystoreProperties.getProperty("storeFile")
+            if (alias != null && password != null && storePath != null) {
+                create("release") {
+                    keyAlias = alias
+                    keyPassword = password
+                    storeFile = rootProject.file(storePath)
+                    storePassword = password
                 }
             }
-
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["password"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["password"] as String
         }
     }
     buildTypes {
@@ -60,7 +64,7 @@ android {
                     .toList().toTypedArray()
             )
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     kotlinOptions {
