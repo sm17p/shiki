@@ -1,12 +1,12 @@
 import { Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
-	checkPermissions,
-	getMediaItems,
-	ImageLoader,
-	type MediaItem,
-	pickFolder,
-	requestPermissions,
+  checkPermissions,
+  getMediaItems,
+  ImageLoader,
+  type MediaItem,
+  pickFolder,
+  requestPermissions,
 } from "tauri-plugin-media-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,122 +20,117 @@ import { store } from "@/store";
 const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
 
 export function CronTab() {
-	const [files, setFiles] = useState<MediaItem[]>([]);
+  const [files, setFiles] = useState<MediaItem[]>([]);
 
-	const onSubmit = useCallback((event) => {
-		event.preventDefault();
-	}, []);
+  const onSubmit = useCallback((event) => {
+    event.preventDefault();
+  }, []);
 
-	const onClick = async () => {
-		// Do you have permission to send a notification?
-		let hasPermission = await checkPermissions();
-		if (!hasPermission.granted) {
-			hasPermission = await requestPermissions();
-		}
-		if (hasPermission?.granted) {
-			const media = await pickFolder();
-			store.set("folders", [media.uri]);
-			getMediaItems(media.uri).then((res) => {
-				res.media.forEach((item) => {
-					console.log("MediaPlugin: ", JSON.stringify(item));
-				});
-				store.set("files", [...res.media]);
-				setFiles(res.media);
-			});
-		}
-	};
+  const onClick = async () => {
+    // Do you have permission to send a notification?
+    let hasPermission = await checkPermissions();
+    if (!hasPermission.granted) {
+      hasPermission = await requestPermissions();
+    }
+    if (hasPermission?.granted) {
+      const media = await pickFolder();
+      store.set("folders", [media.uri]);
+      getMediaItems(media.uri).then((res) => {
+        res.media.forEach((item) => {
+          console.log("MediaPlugin: ", JSON.stringify(item));
+        });
+        store.set("files", [...res.media]);
+        setFiles(res.media);
+      });
+    }
+  };
 
-	useEffect(() => {
-		store.get("files").then((result) => {
-			setFiles(result);
-		});
-	}, []);
+  useEffect(() => {
+    store.get("files").then((result) => {
+      setFiles(result);
+    });
+  }, []);
 
-	return (
-		<section className="px-4 py-5 cron-tab grid grid-cols-1 gap-5 border-b-5">
-			<div className="flex gap-2 justify-between">
-				<h1 className="mt-0 mb-0">
-					{/* <MorphingText texts={HEADER_TEXTS} /> */}
-					{HEADER_TEXTS[0].toString()}
-				</h1>
-				<Button size="icon" variant="neutral">
-					<Settings />
-				</Button>
-			</div>
-			<Card className="w-full bg-white">
-				<CardHeader>
-					<CardTitle className="font-light text-neutral-500">
-						Cycles Every
-					</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<form className="grid grid-cols-1 gap-4" onSubmit={onSubmit}>
-						<div className="flex justify-between">
-							{DAYS_OF_WEEK.map((day) => {
-								return (
-									<Button
-										key={day.id}
-										className="rounded-full"
-										onClick={onClick}
-										pressed={day.code === "T"}
-										size="icon"
-										variant="neutral"
-									>
-										{day.code}
-									</Button>
-								);
-							})}
-						</div>
-						<div className="flex gap-4">
-							<div className="grid items-center gap-1.5">
-								<Label
-									className="text-center text-neutral-500"
-									htmlFor="minute"
-								>
-									Min
-								</Label>
-								<Input
-									className="text-center text-neutral-500"
-									min={0}
-									max={59}
-									type="number"
-									id="minute"
-									placeholder="*"
-								/>
-							</div>
-							<div className="grid items-center gap-1.5">
-								<Label className="text-center text-neutral-500" htmlFor="hour">
-									Hour
-								</Label>
-								<Input
-									className="text-center text-neutral-500"
-									min={0}
-									max={23}
-									type="number"
-									id="hour"
-									placeholder="*"
-								/>
-							</div>
-						</div>
-					</form>
-				</CardContent>
-			</Card>
-			<div className="grid grid-cols-2">
-				{files?.map((v) => (
-					<div key={v.displayName}>
-						<ImageCard
-							key={v.displayName}
-							caption={v.displayName ?? "Untitled"}
-							imageUrl={ImageLoader.getThumbnailUrl(v.path)}
-						/>
-						{/* <ImageCard
+  return (
+    <section className="px-4 py-5 cron-tab grid grid-cols-1 gap-5 border-b-5">
+      <div className="flex gap-2 justify-between">
+        <h1 className="mt-0 mb-0">
+          {/* <MorphingText texts={HEADER_TEXTS} /> */}
+          {HEADER_TEXTS[0].toString()}
+        </h1>
+        <Button size="icon" variant="neutral">
+          <Settings />
+        </Button>
+      </div>
+      <Card className="w-full bg-white">
+        <CardHeader>
+          <CardTitle className="font-light text-neutral-500">Cycles Every</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="grid grid-cols-1 gap-4" onSubmit={onSubmit}>
+            <div className="flex justify-between">
+              {DAYS_OF_WEEK.map((day) => {
+                return (
+                  <Button
+                    key={day.id}
+                    className="rounded-full"
+                    onClick={onClick}
+                    pressed={day.code === "T"}
+                    size="icon"
+                    variant="neutral"
+                  >
+                    {day.code}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="flex gap-4">
+              <div className="grid items-center gap-1.5">
+                <Label className="text-center text-neutral-500" htmlFor="minute">
+                  Min
+                </Label>
+                <Input
+                  className="text-center text-neutral-500"
+                  min={0}
+                  max={59}
+                  type="number"
+                  id="minute"
+                  placeholder="*"
+                />
+              </div>
+              <div className="grid items-center gap-1.5">
+                <Label className="text-center text-neutral-500" htmlFor="hour">
+                  Hour
+                </Label>
+                <Input
+                  className="text-center text-neutral-500"
+                  min={0}
+                  max={23}
+                  type="number"
+                  id="hour"
+                  placeholder="*"
+                />
+              </div>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-2">
+        {files?.map((v) => (
+          <div key={v.displayName}>
+            <ImageCard
+              key={v.displayName}
+              caption={v.displayName ?? "Untitled"}
+              imageUrl={ImageLoader.getThumbnailUrl(v.path)}
+            />
+            {/* <ImageCard
 						key={v.displayName}
 						caption={v.displayName!}
 						imageUrl={ImageLoader.getFullImageUrl(v.path)}
 					/> */}
-					</div>
-				))}
-			</div>
-		</section>
-	);
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 }

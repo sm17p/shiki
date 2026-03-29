@@ -17,7 +17,6 @@ Default permissions for the media plugin
 <th>Description</th>
 </tr>
 
-
 <tr>
 <td>
 

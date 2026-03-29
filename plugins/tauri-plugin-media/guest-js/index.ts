@@ -1,5 +1,5 @@
 // tauri-plugin-media/guest-js/index.ts
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 export interface MediaItem {
   id: string;
@@ -21,53 +21,53 @@ export interface FolderPath {
 }
 
 export interface MediaResponse {
-  media: MediaItem[]
+  media: MediaItem[];
 }
 
 export class ShikiImageLoader {
-    private static instance: ShikiImageLoader;
-    
-    static getInstance(): ShikiImageLoader {
-        if (!ShikiImageLoader.instance) {
-            ShikiImageLoader.instance = new ShikiImageLoader();
-        }
-        return ShikiImageLoader.instance;
+  private static instance: ShikiImageLoader;
+
+  static getInstance(): ShikiImageLoader {
+    if (!ShikiImageLoader.instance) {
+      ShikiImageLoader.instance = new ShikiImageLoader();
     }
-    
-    getThumbnailUrl(contentUri: string): string {
-        return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}?thumbnail=true`;
-    }
-    
-    getFullImageUrl(contentUri: string): string {
-        return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}`;
-    }
-    
-    async preloadImage(url: string): Promise<boolean> {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => resolve(true);
-            img.onerror = () => resolve(false);
-            img.src = url;
-        });
-    }
+    return ShikiImageLoader.instance;
+  }
+
+  getThumbnailUrl(contentUri: string): string {
+    return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}?thumbnail=true`;
+  }
+
+  getFullImageUrl(contentUri: string): string {
+    return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}`;
+  }
+
+  async preloadImage(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  }
 }
 
 export const ImageLoader = ShikiImageLoader.getInstance();
 
 export async function getMediaItems(uri: string): Promise<MediaResponse> {
-  return await invoke('plugin:media|get_media_items', {
-      uri,
+  return await invoke("plugin:media|get_media_items", {
+    uri,
   });
 }
 
 export async function requestPermissions(): Promise<PermissionResult> {
-  return await invoke('plugin:media|request_media_permissions');
+  return await invoke("plugin:media|request_media_permissions");
 }
 
 export async function checkPermissions(): Promise<PermissionResult> {
-  return await invoke('plugin:media|check_media_permissions');
+  return await invoke("plugin:media|check_media_permissions");
 }
 
 export async function pickFolder(): Promise<FolderPath> {
-  return await invoke('plugin:media|pick_folder');
+  return await invoke("plugin:media|pick_folder");
 }

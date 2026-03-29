@@ -19,6 +19,6 @@ run = [
   "if command -v adb >/dev/null 2>&1; then adb --version || true; else echo '  adb not found on PATH'; fi",
   "echo",
   "echo \"NDK versions under $HOME/Library/Android/sdk/ndk (if any):\"",
-  "if [ -d \"$HOME/Library/Android/sdk/ndk\" ]; then ls \"$HOME/Library/Android/sdk/ndk\" || true; else echo '  NDK dir not found'; fi"
+  "if [ -d \"$HOME/Library/Android/sdk/ndk\" ]; then ls \"$HOME/Library/Android/sdk/ndk\" || true; else echo '  NDK dir not found'; fi",
 ]
 

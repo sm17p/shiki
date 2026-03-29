@@ -1,5 +1,5 @@
 // plugins/tauri-plugin-wallpaper/guest-js/index.ts
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 export interface WallpaperOptions {
   /**
@@ -25,8 +25,8 @@ export interface WallpaperOptions {
    * - "tile": Tiles the image.
    * @defaultValue "stretch" (or platform default)
    */
-  mode?: 'fill' | 'fit' | 'stretch' | 'center' | 'tile';
-   [key: string]: unknown; // Allows for arbitrary additional properties, mak
+  mode?: "fill" | "fit" | "stretch" | "center" | "tile";
+  [key: string]: unknown; // Allows for arbitrary additional properties, mak
 }
 
 export interface WallpaperInfo {
@@ -40,7 +40,7 @@ export interface WallpaperInfo {
  * @param options - The wallpaper options.
  */
 export async function setWallpaper(options: WallpaperOptions): Promise<void> {
-  await invoke('plugin:wallpaper|set_wallpaper', options);
+  await invoke("plugin:wallpaper|set_wallpaper", options);
 }
 
 /**
@@ -49,5 +49,5 @@ export async function setWallpaper(options: WallpaperOptions): Promise<void> {
  * @param screen - Optional: Which screen's wallpaper to get info for.
  */
 export async function getWallpaperInfo(screen?: string): Promise<WallpaperInfo> {
-  return await invoke('plugin:wallpaper|get_wallpaper_info', { screen });
+  return await invoke("plugin:wallpaper|get_wallpaper_info", { screen });
 }

@@ -1,9 +1,5 @@
 [workspace]
-members = [
-  "src-tauri",
-  "plugins/tauri-plugin-media",
-  "plugins/tauri-plugin-wallpaper",
-]
+members = ["src-tauri", "plugins/tauri-plugin-media", "plugins/tauri-plugin-wallpaper"]
 resolver = "2"
 
 [workspace.package]

@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-wallpaper"
 version = "0.1.0"
-authors = [ "You" ]
+authors = ["You"]
 description = ""
 edition = "2021"
 rust-version = "1.77.2"
@@ -13,7 +13,12 @@ links = "tauri-plugin-wallpaper"
 tauri = { version = "2.10.3", features = [] }
 # Desktop-specific dependencies
 # Windows API bindings
-windows = { version = "0.62.2", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Foundation"] , optional = true}
+windows = { version = "0.62.2", features = [
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_LibraryLoader",
+  "Win32_Graphics_Gdi",
+  "Win32_Foundation",
+], optional = true }
 # macOS specific (if you decide to use direct Rust bindings, otherwise just FFI)
 # You might not need a specific crate if you bridge to Objective-C directly, or use core Rust
 # You might want to use cocoa/objc crates if you want to avoid raw C/ObjC FFI files.

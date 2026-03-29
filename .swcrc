@@ -1,42 +1,42 @@
 {
-    "$schema": "https://swc.rs/schema.json",
-    "jsc": {
-        "parser": {
-            "syntax": "typescript",
-            "tsx": true,
-            "dynamicImport": true,
-            "privateMethod": true,
-            "functionBind": true,
-            "exportDefaultFrom": true,
-            "exportNamespaceFrom": true,
-            "decorators": false,
-            "decoratorsBeforeExport": true,
-            "topLevelAwait": false,
-            "importMeta": true
-        },
-        "transform": {
-            "react": {
-                "runtime": "automatic"
-            }
-        },
-        "target": "esnext",
-        "loose": false,
-        "externalHelpers": false,
-        "minify": {
-            "compress": {
-                "drop_console": true,
-                "drop_debugger": true,
-                "unused": true
-            },
-            "mangle": {
-                "toplevel": false,
-                "keep_classnames": true,
-                "keep_fnames": true,
-                "keep_private_props": false
-            }
-        }
+  "$schema": "https://swc.rs/schema.json",
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "tsx": true,
+      "dynamicImport": true,
+      "privateMethod": true,
+      "functionBind": true,
+      "exportDefaultFrom": true,
+      "exportNamespaceFrom": true,
+      "decorators": false,
+      "decoratorsBeforeExport": true,
+      "topLevelAwait": false,
+      "importMeta": true
     },
-    "module": {
-        "type": "nodenext"
+    "transform": {
+      "react": {
+        "runtime": "automatic"
+      }
+    },
+    "target": "esnext",
+    "loose": false,
+    "externalHelpers": false,
+    "minify": {
+      "compress": {
+        "drop_console": true,
+        "drop_debugger": true,
+        "unused": true
+      },
+      "mangle": {
+        "toplevel": false,
+        "keep_classnames": true,
+        "keep_fnames": true,
+        "keep_private_props": false
+      }
     }
+  },
+  "module": {
+    "type": "nodenext"
+  }
 }
