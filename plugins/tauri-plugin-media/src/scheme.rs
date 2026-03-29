@@ -1,11 +1,7 @@
-use crate::error::Result;
 use crate::models::ImageLoadRequest;
 use log;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Mutex;
-use tauri::http::{Request, Response, status::StatusCode};
-use tauri::{Manager, Runtime, State, UriSchemeContext, UriSchemeResponder, Url};
+use tauri::http::status::StatusCode;
+use tauri::{Runtime, UriSchemeContext, UriSchemeResponder};
 
 use crate::{MediaExt, ModelsMediaExt};
 

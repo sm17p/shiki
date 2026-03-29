@@ -1,37 +1,47 @@
-use std::path;
+use crate::error::Error;
 
-use crate::error::{Error, Result};
-use crate::models::{FolderPath, MediaExt as ModelsMediaExt, MediaResponse, PermissionResult};
-use serde::de::DeserializeOwned;
+#[cfg(desktop)]
 use tauri::{
     AppHandle, Runtime,
     plugin::{PluginApi, PluginHandle},
-}; // Import both Error and Result;
+};
 
-pub fn init<R: Runtime, C: DeserializeOwned>(
+#[cfg(desktop)]
+use crate::models::{
+    FolderPath, ImageLoadRequest, ImageLoadResponse, MediaExt as ModelsMediaExt, MediaResponse,
+    PermissionResult,
+};
+
+#[cfg(desktop)]
+pub fn init<R: Runtime, C: serde::de::DeserializeOwned>(
     _app: &AppHandle<R>,
     _api: PluginApi<R, C>,
-) -> Result<Media<R>> {
+) -> Result<Media<R>, Error> {
     Err(Error::UnsupportedPlatform)
 }
 
-/// Access to the media APIs.#[cfg(mobile)]
+#[cfg(desktop)]
 pub struct Media<R: Runtime>(PluginHandle<R>);
 
+#[cfg(desktop)]
 impl<R: Runtime> ModelsMediaExt<R> for Media<R> {
-    fn get_media_items(&self, uri: String) -> Result<MediaResponse> {
+    fn get_media_items(&self, _uri: String) -> Result<MediaResponse, Error> {
         Err(Error::UnsupportedPlatform)
     }
 
-    fn request_permissions(&self) -> Result<PermissionResult> {
+    fn request_permissions(&self) -> Result<PermissionResult, Error> {
         Err(Error::UnsupportedPlatform)
     }
 
-    fn check_permissions(&self) -> Result<PermissionResult> {
+    fn check_permissions(&self) -> Result<PermissionResult, Error> {
         Err(Error::UnsupportedPlatform)
     }
 
-    fn pick_folder(&self) -> Result<crate::models::FolderPath> {
+    fn pick_folder(&self) -> Result<FolderPath, Error> {
+        Err(Error::UnsupportedPlatform)
+    }
+
+    fn load_image_data(&self, _args: ImageLoadRequest) -> Result<ImageLoadResponse, Error> {
         Err(Error::UnsupportedPlatform)
     }
 }
