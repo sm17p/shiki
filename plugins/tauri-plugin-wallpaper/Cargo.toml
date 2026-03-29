@@ -10,7 +10,7 @@ links = "tauri-plugin-wallpaper"
 
 [dependencies]
 # Required for all plugins
-tauri = { version = "2", features = ["inlined-js"] } # Use your current tauri version
+tauri = { version = "2.10.2", features = [] }
 # Desktop-specific dependencies
 # Windows API bindings
 windows = { version = "0.52.0", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Foundation"] , optional = true}
@@ -23,7 +23,7 @@ serde = "1.0"
 thiserror = "2"
 
 [build-dependencies]
-tauri-plugin = { version = "2", features = ["build", "mobile"] } # Use your current tauri-plugin version
+tauri-plugin = { version = "2.5.3", features = ["build"] }
 
 [features]
 # By default, all features are enabled. Add specific features here if needed.
