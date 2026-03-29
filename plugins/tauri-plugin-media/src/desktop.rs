@@ -1,12 +1,12 @@
 use std::path;
 
-use crate::{error::{Error, Result};
+use crate::error::{Error, Result};
+use crate::models::{FolderPath, MediaExt as ModelsMediaExt, MediaResponse, PermissionResult};
 use serde::de::DeserializeOwned;
 use tauri::{
     AppHandle, Runtime,
     plugin::{PluginApi, PluginHandle},
 }; // Import both Error and Result;
-use crate::models::{MediaExt as ModelsMediaExt, MediaResponse, PermissionResult, FolderPath};
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
