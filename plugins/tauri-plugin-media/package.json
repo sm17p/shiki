@@ -1,21 +1,21 @@
 {
   "name": "tauri-plugin-media-api",
   "version": "0.1.0",
-  "author": "You",
   "description": "",
+  "author": "You",
+  "files": [
+    "dist-js",
+    "README.md"
+  ],
   "type": "module",
-  "types": "./guest-js/index.ts",
   "main": "./guest-js/index.ts",
   "module": "./guest-js/index.ts",
+  "types": "./guest-js/index.ts",
   "exports": {
     "types": "./guest-js/index.ts",
     "import": "./guest-js/index.ts",
     "require": "./guest-js/index.ts"
   },
-  "files": [
-    "dist-js",
-    "README.md"
-  ],
   "scripts": {
     "build": "rollup -c",
     "prepublishOnly": "pnpm build",
@@ -27,7 +27,7 @@
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
     "rollup": "^4.9.6",
-    "typescript": "^5.3.3",
-    "tslib": "^2.6.2"
+    "tslib": "^2.6.2",
+    "typescript": "^5.3.3"
   }
 }

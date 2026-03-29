@@ -25,7 +25,6 @@
         "default-src": "'self' ipc: http://ipc.localhost",
         "style-src": "'unsafe-inline' 'self'",
         "img-src": "'self' shiki: http://shiki.localhost blob: data:"
-
       }
     }
   },
