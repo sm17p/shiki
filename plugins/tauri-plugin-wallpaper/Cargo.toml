@@ -10,7 +10,7 @@ links = "tauri-plugin-wallpaper"
 
 [dependencies]
 # Required for all plugins
-tauri = { version = "2.10.2", features = [] }
+tauri = { version = "2.10.3", features = [] }
 # Desktop-specific dependencies
 # Windows API bindings
 windows = { version = "0.62.2", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_Graphics_Gdi", "Win32_Foundation"] , optional = true}
