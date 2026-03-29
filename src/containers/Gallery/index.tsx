@@ -16,8 +16,5 @@
 // const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
 
 export function Gallery() {
-  return (
-    <section className="px-4 py-5 flex-1 bg-white">
-    </section>
-  );
+	return <section className="px-4 py-5 flex-1 bg-white"></section>;
 }

@@ -51,12 +51,11 @@
 } */
 
 @theme {
-  --breakpoint-xxs: 320px;
-  --breakpoint-xs: 375px;
+	--breakpoint-xxs: 320px;
+	--breakpoint-xs: 375px;
 }
 
 :root {
-
 	--background: oklch(92.13% 0.0388 282.36);
 	--secondary-background: oklch(100% 0 0);
 	--foreground: oklch(0% 0 0);
@@ -138,14 +137,16 @@
 	h5,
 	h6 {
 		@apply font-heading;
-		font-family: "Chillax", system-ui, BlinkMacSystemFont, "Segoe UI", Roboto,
-			Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+		font-family:
+			"Chillax", system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+			Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 		color: white;
-		text-shadow: -1px -1px 0 #000,
-            1px -1px 0 #000,
-            -1px  1px 0 #000,
-            1px  1px 0 #000,
-            2px 2px 0px black;
+		text-shadow:
+			-1px -1px 0 #000,
+			1px -1px 0 #000,
+			-1px 1px 0 #000,
+			1px 1px 0 #000,
+			2px 2px 0px black;
 	}
 
 	.cron-tab {

@@ -1,11 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import ImageCard from "@/components/ui/image-card";
-
-// import { MorphingText } from "@/components/magicui/morphing-text";
-import { DAYS_OF_WEEK } from "@/constants";
+import { Settings } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	checkPermissions,
 	getMediaItems,
@@ -14,14 +8,18 @@ import {
 	pickFolder,
 	requestPermissions,
 } from "tauri-plugin-media-api";
-import { Settings } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ImageCard from "@/components/ui/image-card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+// import { MorphingText } from "@/components/magicui/morphing-text";
+import { DAYS_OF_WEEK } from "@/constants";
 import { store } from "@/store";
 
 const HEADER_TEXTS = ["四季", "Shiki", "ऋतुएँ", "Rituye"];
 
 export function CronTab() {
-	const [folders, setFolder] = useState([]);
 	const [files, setFiles] = useState<MediaItem[]>([]);
 
 	const onSubmit = useCallback((event) => {
@@ -38,10 +36,9 @@ export function CronTab() {
 			const media = await pickFolder();
 			store.set("folders", [media.uri]);
 			getMediaItems(media.uri).then((res) => {
-				// biome-ignore lint/complexity/noForEach: <explanation>
-				res.media.forEach((item) =>
-					console.log("MediaPlugin: ", JSON.stringify(item)),
-				);
+				res.media.forEach((item) => {
+					console.log("MediaPlugin: ", JSON.stringify(item));
+				});
 				store.set("files", [...res.media]);
 				setFiles(res.media);
 			});
@@ -128,7 +125,7 @@ export function CronTab() {
 					<div key={v.displayName}>
 						<ImageCard
 							key={v.displayName}
-							caption={v.displayName!}
+							caption={v.displayName ?? "Untitled"}
 							imageUrl={ImageLoader.getThumbnailUrl(v.path)}
 						/>
 						{/* <ImageCard

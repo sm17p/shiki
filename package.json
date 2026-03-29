@@ -33,7 +33,7 @@
     "tauri-plugin-media-api": "file:plugins/tauri-plugin-media"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.4.9",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
     "@tailwindcss/typography": "^0.5.19",
