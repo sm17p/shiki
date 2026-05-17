@@ -1,0 +1,13 @@
+appId: me.sm17p.shiki
+name: Android smoke
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Cycle"
+- assertVisible: "Folder"
+- assertVisible: "Wallpapers"
+- assertVisible: "Active"
+- assertVisible: "Hour"
+- assertVisible: "Min"

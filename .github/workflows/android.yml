@@ -15,6 +15,7 @@ permissions:
 env:
   ANDROID_API_LEVEL: "36"
   ANDROID_BUILD_TOOLS_VERSION: "36.0.0"
+  ANDROID_EMULATOR_API_LEVEL: "35"
   ANDROID_NDK_VERSION: "27.2.12479018"
   ANDROID_SDK_ROOT: ${{ github.workspace }}/.android/sdk
   ANDROID_HOME: ${{ github.workspace }}/.android/sdk
@@ -125,6 +126,42 @@ jobs:
             :tauri-plugin-media:testDebugUnitTest \
             :tauri-plugin-wallpaper:testDebugUnitTest
 
+      - name: Cache Maestro CLI
+        uses: actions/cache@v5
+        with:
+          path: ~/.maestro
+          key: maestro-cli-${{ runner.os }}-v1
+
+      - name: Install Maestro
+        shell: bash
+        run: |
+          if [ ! -x "$HOME/.maestro/bin/maestro" ]; then
+            curl -fsSL "https://get.maestro.mobile.dev" | bash
+          fi
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro smoke tests
+        uses: reactivecircus/android-emulator-runner@v2.35.0
+        with:
+          api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            mkdir -p build
+            adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+            maestro test --format junit --output build/maestro-report.xml --test-output-dir build/maestro-results .maestro
+
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -133,6 +170,8 @@ jobs:
           path: |
             src-tauri/gen/android/**/build/reports/tests/
             src-tauri/gen/android/**/build/test-results/
+            build/maestro-report.xml
+            build/maestro-results/
           if-no-files-found: ignore
 
       - name: Upload debug APK
