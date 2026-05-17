@@ -4,7 +4,35 @@ on:
   push:
     branches:
       - main
+    paths:
+      - ".github/workflows/android.yml"
+      - ".maestro/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "plugins/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vite.config.ts"
+      - "tsconfig*.json"
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - ".github/workflows/android.yml"
+      - ".maestro/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "plugins/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vite.config.ts"
+      - "tsconfig*.json"
   workflow_dispatch:
 
 concurrency:
@@ -18,14 +46,19 @@ env:
   ANDROID_API_LEVEL: "36"
   ANDROID_BUILD_TOOLS_VERSION: "36.0.0"
   ANDROID_CMAKE_VERSION: "3.31.5"
-  ANDROID_EMULATOR_API_LEVEL: "35"
+  ANDROID_EMULATOR_API_LEVEL: "34"
+  ANDROID_EMULATOR_ARCH: x86_64
+  ANDROID_EMULATOR_TARGET: google_apis
   ANDROID_NDK_VERSION: "27.2.12479018"
+  ANDROID_RUST_TARGET: x86_64-linux-android
   ANDROID_SDK_ROOT: ${{ github.workspace }}/.android/sdk
+  ANDROID_TEST_APK: src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
   ANDROID_HOME: ${{ github.workspace }}/.android/sdk
   CARGO_INCREMENTAL: "0"
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   CARGO_TERM_COLOR: always
   GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+  MAESTRO_VERSION: "2.5.1"
   RUSTC_WRAPPER: sccache
   SCCACHE_GHA_ENABLED: "true"
   SCCACHE_CACHE_SIZE: "5G"
@@ -64,7 +97,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .android/sdk
-          key: android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-emulator-${{ env.ANDROID_EMULATOR_API_LEVEL }}-build-tools-${{ env.ANDROID_BUILD_TOOLS_VERSION }}-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}
+          key: android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-emulator-${{ env.ANDROID_EMULATOR_API_LEVEL }}-${{ env.ANDROID_EMULATOR_TARGET }}-${{ env.ANDROID_EMULATOR_ARCH }}-build-tools-${{ env.ANDROID_BUILD_TOOLS_VERSION }}-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}
           restore-keys: |
             android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-
             android-sdk-${{ runner.os }}-
@@ -97,7 +130,7 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal
           rustup default stable
-          rustup target add x86_64-linux-android
+          rustup target add "${ANDROID_RUST_TARGET}"
 
       - name: Cache Cargo registry and build outputs
         uses: actions/cache@v5
@@ -106,11 +139,11 @@ jobs:
             ~/.cargo/git/db
             ~/.cargo/registry/cache
             ~/.cargo/registry/index
-            target
-          key: cargo-${{ runner.os }}-android-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          key: cargo-${{ runner.os }}-android-${{ env.ANDROID_RUST_TARGET }}-ndk-${{ env.ANDROID_NDK_VERSION }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
           restore-keys: |
             cargo-${{ runner.os }}-android-
             cargo-${{ runner.os }}-
+          save-always: true
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -138,12 +171,13 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.maestro
-          key: maestro-cli-${{ runner.os }}-v1
+          key: maestro-cli-${{ runner.os }}-${{ env.MAESTRO_VERSION }}
 
       - name: Install Maestro
         shell: bash
         run: |
-          if [ ! -x "$HOME/.maestro/bin/maestro" ]; then
+          if [ ! -x "$HOME/.maestro/bin/maestro" ] || ! "$HOME/.maestro/bin/maestro" --version | grep -q "$MAESTRO_VERSION"; then
+            export MAESTRO_VERSION
             curl -fsSL "https://get.maestro.mobile.dev" | bash
           fi
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
@@ -160,14 +194,14 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2.35.0
         with:
           api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
-          target: google_apis
-          arch: x86_64
+          target: ${{ env.ANDROID_EMULATOR_TARGET }}
+          arch: ${{ env.ANDROID_EMULATOR_ARCH }}
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             mkdir -p build
-            adb install -r src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+            adb install -r "$ANDROID_TEST_APK"
             maestro test --format junit --output build/maestro-report.xml --test-output-dir build/maestro-results .maestro
 
       - name: Upload Android test reports
@@ -186,7 +220,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: shiki-android-debug-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          path: ${{ env.ANDROID_TEST_APK }}
           if-no-files-found: error
 
       - name: Print sccache stats
