@@ -93,8 +93,9 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Cache Android SDK
-        uses: actions/cache@v5
+      - name: Restore Android SDK cache
+        id: android-sdk-cache
+        uses: actions/cache/restore@v5
         with:
           path: .android/sdk
           key: android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-emulator-${{ env.ANDROID_EMULATOR_API_LEVEL }}-${{ env.ANDROID_EMULATOR_TARGET }}-${{ env.ANDROID_EMULATOR_ARCH }}-build-tools-${{ env.ANDROID_BUILD_TOOLS_VERSION }}-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}
@@ -117,6 +118,14 @@ jobs:
             "ndk;${ANDROID_NDK_VERSION}" \
             "cmake;${ANDROID_CMAKE_VERSION}"
 
+      - name: Save Android SDK cache
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true' && steps.android-sdk-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: .android/sdk
+          key: ${{ steps.android-sdk-cache.outputs.cache-primary-key }}
+
       - name: Set Android local properties
         shell: bash
         run: |
@@ -132,8 +141,9 @@ jobs:
           rustup default stable
           rustup target add "${ANDROID_RUST_TARGET}"
 
-      - name: Cache Cargo registry and build outputs
-        uses: actions/cache@v5
+      - name: Restore Cargo registry cache
+        id: cargo-registry-cache
+        uses: actions/cache/restore@v5
         with:
           path: |
             ~/.cargo/git/db
@@ -143,7 +153,6 @@ jobs:
           restore-keys: |
             cargo-${{ runner.os }}-android-
             cargo-${{ runner.os }}-
-          save-always: true
 
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -155,6 +164,17 @@ jobs:
 
       - name: Build Android debug APK
         run: pnpm tauri android build --debug --apk --target x86_64 --ci
+
+      - name: Save Cargo registry cache
+        if: always() && steps.cargo-registry-cache.outputs.cache-hit != 'true' && steps.cargo-registry-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cargo/git/db
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+          key: ${{ steps.cargo-registry-cache.outputs.cache-primary-key }}
 
       - name: Run Android unit tests
         working-directory: src-tauri/gen/android
@@ -191,7 +211,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run Maestro smoke tests
-        uses: reactivecircus/android-emulator-runner@v2.35.0
+        uses: reactivecircus/android-emulator-runner@v2.37.0
         with:
           api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
           target: ${{ env.ANDROID_EMULATOR_TARGET }}
