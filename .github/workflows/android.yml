@@ -69,12 +69,17 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
         with:
-          packages: |
-            platform-tools
-            platforms;android-${{ env.ANDROID_API_LEVEL }}
-            build-tools;${{ env.ANDROID_BUILD_TOOLS_VERSION }}
-            ndk;${{ env.ANDROID_NDK_VERSION }}
-            cmake;3.31.5
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;3.31.5"
 
       - name: Set Android local properties
         shell: bash
