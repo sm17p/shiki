@@ -48,7 +48,7 @@ env:
   ANDROID_CMAKE_VERSION: "3.31.5"
   ANDROID_EMULATOR_API_LEVEL: "34"
   ANDROID_EMULATOR_ARCH: x86_64
-  ANDROID_EMULATOR_TARGET: google_apis
+  ANDROID_EMULATOR_TARGET: default
   ANDROID_NDK_VERSION: "27.2.12479018"
   ANDROID_RUST_TARGET: x86_64-linux-android
   ANDROID_SDK_ROOT: ${{ github.workspace }}/.android/sdk
@@ -91,7 +91,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17"
 
       - name: Restore Android SDK cache
         id: android-sdk-cache

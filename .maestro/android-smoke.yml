@@ -5,6 +5,9 @@ tags:
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: "Cycle"
+    timeout: 30000
 - assertVisible: "Cycle"
 - assertVisible: "Folder"
 - assertVisible: "Wallpapers"
