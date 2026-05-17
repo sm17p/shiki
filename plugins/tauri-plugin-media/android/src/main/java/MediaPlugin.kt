@@ -47,6 +47,7 @@ private val pluginScope = CoroutineScope(Dispatchers.Main) // Or Dispatchers.Mai
 )
 class MediaPlugin(private val activity: Activity) : Plugin(activity) {
     private var lastInvoke: Invoke? = null // Declare lastInvoke here
+    private var permissionInvoke: Invoke? = null
     private val TAG: String = Logger.tags("MediaPlugin")
 
     @InvokeArg
@@ -186,12 +187,20 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @PermissionCallback
-    fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+    @Suppress("UNUSED_PARAMETER")
+    fun onRequestPermissionsResult(requestCode: Int, _permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            val granted = grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+            permissionInvoke?.let { invoke ->
+                invoke.resolve(JSObject().put("granted", granted))
+                permissionInvoke = null
+                return
+            }
+
+            if (granted) {
                 // Permissions granted, re-launch the folder picker
                 Logger.info(TAG, "Pick #1");
-                pickFolder(lastInvoke!!)
+                lastInvoke?.let { pickFolder(it) }
             } else {
                 lastInvoke?.reject("Permission required")
                 lastInvoke = null
@@ -227,6 +236,43 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @ActivityCallback
+    fun onMediaPickResult(invoke: Invoke, result: ActivityResult) {
+        try {
+            when (result.resultCode) {
+                Activity.RESULT_OK -> {
+                    val uri: Uri? = result.data?.data
+                    if (uri == null) {
+                        invoke.reject("Empty URI")
+                        return
+                    }
+
+                    val takeFlags = result.data?.flags?.and(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        ?: Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    try {
+                        activity.applicationContext.contentResolver.takePersistableUriPermission(uri, takeFlags)
+                    } catch (e: SecurityException) {
+                        Logger.error(TAG, "Failed to persist media URI permission", e)
+                    }
+
+                    val documentFile = DocumentFile.fromSingleUri(activity, uri)
+                    if (documentFile == null || !documentFile.isFile || !isImageFile(documentFile)) {
+                        invoke.reject("Selected file is not an image")
+                        return
+                    }
+
+                    invoke.resolve(mediaItemToJson(createMediaItemFromDocumentFile(documentFile)))
+                }
+                Activity.RESULT_CANCELED -> invoke.reject("File picker cancelled")
+                else -> invoke.reject("Failed to pick file")
+            }
+        } catch (ex: java.lang.Exception) {
+            val message = ex.message ?: "Failed to read file pick result"
+            Logger.error(TAG, message, ex)
+            invoke.reject(message)
+        }
+    }
+
     @Command
     fun pickFolder(invoke: Invoke) {
         lastInvoke = invoke
@@ -254,6 +300,16 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
         handle?.startActivityForResult(invoke, intent, "onFolderPickResult")
+    }
+
+    @Command
+    fun pickMedia(invoke: Invoke) {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        intent.type = "image/*"
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+        handle?.startActivityForResult(invoke, intent, "onMediaPickResult")
     }
 
     @Command
@@ -306,6 +362,24 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
     private fun isMediaFile(file: DocumentFile): Boolean {
         val mimeType = file.type ?: return false
         return mimeType.startsWith("image/") || mimeType.startsWith("video/")
+    }
+
+    private fun isImageFile(file: DocumentFile): Boolean {
+        val mimeType = file.type ?: return false
+        return mimeType.startsWith("image/")
+    }
+
+    private fun mediaItemToJson(item: MediaItem): JSObject {
+        return JSObject().apply {
+            put("id", item.id)
+            put("displayName", item.displayName)
+            put("path", item.path)
+            put("mimeType", item.mimeType)
+            put("dateAdded", item.dateAdded)
+            put("width", item.width)
+            put("height", item.height)
+            item.duration?.let { put("duration", it) }
+        }
     }
 
     private fun createMediaItemFromDocumentFile(file: DocumentFile): MediaItem {
@@ -382,10 +456,8 @@ class MediaPlugin(private val activity: Activity) : Plugin(activity) {
         }
 
         if (permissionsToRequest.isNotEmpty()) {
+            permissionInvoke = invoke
             ActivityCompat.requestPermissions(activity, permissionsToRequest.toTypedArray(), PERMISSION_REQUEST_CODE)
-            // For simplicity, resolve immediately. In a real app, you'd handle the result
-            // in onRequestPermissionsResult and then bridge back to resolve/reject.
-            invoke.resolve(JSObject().put("granted", true)) // <--- FIXED
         } else {
             invoke.resolve(JSObject().put("granted", true)) // <--- FIXED
         }

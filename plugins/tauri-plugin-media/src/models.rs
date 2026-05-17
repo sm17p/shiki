@@ -22,6 +22,7 @@ pub trait MediaExt<R: Runtime> {
     fn request_permissions(&self) -> Result<PermissionResult>;
     fn check_permissions(&self) -> Result<PermissionResult>;
     fn pick_folder(&self) -> Result<FolderPath>;
+    fn pick_media(&self) -> Result<MediaItem>;
     fn load_image_data(&self, args: ImageLoadRequest) -> Result<ImageLoadResponse>;
 }
 
@@ -59,7 +60,6 @@ pub struct ImageLoadRequest {
 pub struct ImageLoadResponse {
     pub data: Vec<u8>,
     pub mime_type: String,
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
 }
-

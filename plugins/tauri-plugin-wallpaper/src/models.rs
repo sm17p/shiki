@@ -1,13 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PingRequest {
-  pub value: Option<String>,
+pub struct PermissionResult {
+    pub granted: bool,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PingResponse {
-  pub value: Option<String>,
+pub struct WallpaperInfo {
+    pub path: Option<String>,
+    pub screen: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WallpaperOptions {
+    pub path: String,
+    pub screen: Option<String>,
+    pub mode: Option<String>,
 }

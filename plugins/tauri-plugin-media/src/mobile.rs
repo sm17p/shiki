@@ -1,12 +1,20 @@
 use serde::de::DeserializeOwned;
-use tauri::{AppHandle, Runtime, plugin::{PluginApi, PluginHandle}};
 use serde_json;
+use tauri::{
+    AppHandle, Runtime,
+    plugin::{PluginApi, PluginHandle},
+};
 
-use crate::models::{MediaExt as ModelsMediaExt, MediaResponse, PermissionResult, FolderPath, ImageLoadRequest, ImageLoadResponse};
+use crate::models::{
+    FolderPath, ImageLoadRequest, ImageLoadResponse, MediaExt as ModelsMediaExt, MediaItem,
+    MediaResponse, PermissionResult,
+};
 
 // use crate::android;
 // use crate::ios;
-use crate::error::{Error, Result};
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+use crate::error::Error;
+use crate::error::Result;
 
 #[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "me.sm17p.shiki.media";
@@ -24,9 +32,7 @@ impl<R: Runtime> ModelsMediaExt<R> for Media<R> {
         return Err(Error::UnsupportedPlatform);
 
         self.0
-            .run_mobile_plugin("getMediaItems", FolderPath {
-                uri,
-            })
+            .run_mobile_plugin("getMediaItems", FolderPath { uri })
             .map_err(Into::into)
     }
 
@@ -51,6 +57,12 @@ impl<R: Runtime> ModelsMediaExt<R> for Media<R> {
     fn pick_folder(&self) -> Result<FolderPath> {
         self.0
             .run_mobile_plugin("pickFolder", serde_json::Value::Null)
+            .map_err(Into::into)
+    }
+
+    fn pick_media(&self) -> Result<MediaItem> {
+        self.0
+            .run_mobile_plugin("pickMedia", serde_json::Value::Null)
             .map_err(Into::into)
     }
 

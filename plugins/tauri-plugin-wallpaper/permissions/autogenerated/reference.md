@@ -1,10 +1,12 @@
 ## Default Permission
 
-Default permissions for the plugin
+Default permissions for the wallpaper plugin
 
 #### This default permission set includes the following:
 
-- `allow-ping`
+- `allow-set-wallpaper`
+- `allow-get-wallpaper-info`
+- `allow-check-permissions`
 
 ## Permission Table
 
@@ -17,12 +19,12 @@ Default permissions for the plugin
 <tr>
 <td>
 
-`wallpaper:allow-ping`
+`wallpaper:allow-check-permissions`
 
 </td>
 <td>
 
-Enables the ping command without any pre-configured scope.
+Enables the check_permissions command without any pre-configured scope.
 
 </td>
 </tr>
@@ -30,12 +32,64 @@ Enables the ping command without any pre-configured scope.
 <tr>
 <td>
 
-`wallpaper:deny-ping`
+`wallpaper:deny-check-permissions`
 
 </td>
 <td>
 
-Denies the ping command without any pre-configured scope.
+Denies the check_permissions command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`wallpaper:allow-get-wallpaper-info`
+
+</td>
+<td>
+
+Enables the get_wallpaper_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`wallpaper:deny-get-wallpaper-info`
+
+</td>
+<td>
+
+Denies the get_wallpaper_info command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`wallpaper:allow-set-wallpaper`
+
+</td>
+<td>
+
+Enables the set_wallpaper command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`wallpaper:deny-set-wallpaper`
+
+</td>
+<td>
+
+Denies the set_wallpaper command without any pre-configured scope.
 
 </td>
 </tr>

@@ -9,6 +9,7 @@
     "opener:default",
     "store:default",
     "media:default",
+    "wallpaper:default",
     "notification:default",
     "log:default",
     "nfc:default"

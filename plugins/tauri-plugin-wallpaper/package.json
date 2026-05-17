@@ -8,13 +8,13 @@
     "README.md"
   ],
   "type": "module",
-  "main": "./dist-js/index.cjs",
-  "module": "./dist-js/index.js",
-  "types": "./dist-js/index.d.ts",
+  "main": "./guest-js/index.ts",
+  "module": "./guest-js/index.ts",
+  "types": "./guest-js/index.ts",
   "exports": {
-    "types": "./dist-js/index.d.ts",
-    "import": "./dist-js/index.js",
-    "require": "./dist-js/index.cjs"
+    "types": "./guest-js/index.ts",
+    "import": "./guest-js/index.ts",
+    "require": "./guest-js/index.ts"
   },
   "scripts": {
     "build": "rollup -c",
@@ -22,12 +22,12 @@
     "pretest": "pnpm build"
   },
   "dependencies": {
-    "@tauri-apps/api": ">=2.0.0-beta.6"
+    "@tauri-apps/api": "^2.11.0"
   },
   "devDependencies": {
-    "@rollup/plugin-typescript": "^11.1.6",
-    "rollup": "^4.9.6",
-    "tslib": "^2.6.2",
-    "typescript": "^5.3.3"
+    "@rollup/plugin-typescript": "^12.3.0",
+    "rollup": "^4.60.4",
+    "tslib": "^2.8.1",
+    "typescript": "^6.0.3"
   }
 }

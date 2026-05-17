@@ -15,13 +15,13 @@ val tauriProperties = Properties().apply {
 }
 
 android {
-    compileSdk = 34
+    compileSdk = 36
     namespace = "me.sm17p.shiki"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "me.sm17p.shiki"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }

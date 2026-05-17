@@ -1,14 +1,15 @@
-use crate::models::ImageLoadRequest;
 use log;
+use tauri::http::Request;
 use tauri::http::status::StatusCode;
 use tauri::{Runtime, UriSchemeContext, UriSchemeResponder};
 
+use crate::models::ImageLoadRequest;
 use crate::{MediaExt, ModelsMediaExt};
 
 // Protocol handler for shiki://image/* URLs
 pub fn handle_shiki_protocol<R: Runtime + 'static>(
-    ctx: UriSchemeContext<'_ , R>,
-    request: tauri::http::Request<Vec<u8>>,
+    ctx: UriSchemeContext<'_, R>,
+    request: Request<Vec<u8>>,
     responder: UriSchemeResponder,
 ) {
     let app_handle = ctx.app_handle().clone();
@@ -16,9 +17,17 @@ pub fn handle_shiki_protocol<R: Runtime + 'static>(
         let uri_str = request.uri().to_string();
         log::info!("Parsing {:?}", uri_str);
 
-        let content_path = uri_str
+        let Some(content_path) = uri_str
             .strip_prefix("shiki://localhost/image/")
-            .unwrap();
+            .or_else(|| uri_str.strip_prefix("http://shiki.localhost/image/"))
+        else {
+            let response = tauri::http::Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .body(b"Invalid shiki image URL".to_vec())
+                .unwrap();
+            responder.respond(response);
+            return;
+        };
 
         let (base_uri, query) = if let Some(pos) = content_path.find('?') {
             (&content_path[..pos], &content_path[pos + 1..])
