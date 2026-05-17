@@ -1,15 +1,28 @@
-use tauri::{AppHandle, command, Runtime};
+use tauri::{AppHandle, Runtime};
 
 use crate::models::*;
-use crate::Result;
-use crate::WallpaperExt;
+use crate::{Result, WallpaperExt};
 
-// in src/plugin.rs
-#[command]
-async fn set_wallpaper_internal(app: tauri::AppHandle, image_path: String) -> Result<(), String> {
-    app.plugin("wallpaper")? // Replace "wallpaper" with your plugin's ID
-       .send_notification("set_wallpaper")? // The name of your Kotlin command
-       .data(serde_json::json!({ "imagePath": image_path })) // Pass data to Kotlin
-       .submit()?;
-    Ok(()) // Or handle result from Kotlin
+#[tauri::command]
+pub(crate) async fn set_wallpaper<R: Runtime>(
+    app: AppHandle<R>,
+    path: String,
+    screen: Option<String>,
+    mode: Option<String>,
+) -> Result<()> {
+    app.wallpaper()
+        .set_wallpaper(WallpaperOptions { path, screen, mode })
+}
+
+#[tauri::command]
+pub(crate) async fn get_wallpaper_info<R: Runtime>(
+    app: AppHandle<R>,
+    screen: Option<String>,
+) -> Result<WallpaperInfo> {
+    app.wallpaper().get_wallpaper_info(screen)
+}
+
+#[tauri::command]
+pub(crate) async fn check_permissions<R: Runtime>(app: AppHandle<R>) -> Result<PermissionResult> {
+    app.wallpaper().check_permissions()
 }

@@ -1,15 +1,32 @@
-export const DAYS_OF_WEEK: DaysOfWeek[] = [
-  { id: 0, code: "S", shortName: "Sun", longName: "Sunday", active: false },
-  { id: 1, code: "M", shortName: "Mon", longName: "Monday", active: false },
-  { id: 2, code: "T", shortName: "Tue", longName: "Tuesday", active: false },
-  { id: 3, code: "W", shortName: "Wed", longName: "Wednesday", active: false },
-  { id: 4, code: "T", shortName: "Thu", longName: "Thursday", active: false }, // Note: Both Tue and Thu will have 'T' as code
-  { id: 5, code: "F", shortName: "Fri", longName: "Friday", active: false },
-  { id: 6, code: "S", shortName: "Sat", longName: "Saturday" },
+export type DayOfWeek = {
+  id: number;
+  code: string;
+  longName: string;
+  shortName: string;
+};
+
+export type ScheduleSettings = {
+  enabled: boolean;
+  days: number[];
+  hour: number;
+  minute: number;
+  unlock: boolean;
+};
+
+export const DAYS_OF_WEEK: DayOfWeek[] = [
+  { id: 0, code: "Su", shortName: "Sun", longName: "Sunday" },
+  { id: 1, code: "Mo", shortName: "Mon", longName: "Monday" },
+  { id: 2, code: "Tu", shortName: "Tue", longName: "Tuesday" },
+  { id: 3, code: "We", shortName: "Wed", longName: "Wednesday" },
+  { id: 4, code: "Th", shortName: "Thu", longName: "Thursday" },
+  { id: 5, code: "Fr", shortName: "Fri", longName: "Friday" },
+  { id: 6, code: "Sa", shortName: "Sat", longName: "Saturday" },
 ];
 
-export const STORE_DEFAULTS = {
-  days: DAYS_OF_WEEK,
-  schedule: [],
-  folders: [],
+export const DEFAULT_SCHEDULE: ScheduleSettings = {
+  enabled: false,
+  days: DAYS_OF_WEEK.map((day) => day.id),
+  hour: 1,
+  minute: 0,
+  unlock: true,
 };

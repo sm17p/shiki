@@ -8,6 +8,7 @@ permissions = [
   "allow-check-media-permissions",
   "allow-request-media-permissions",
   "allow-pick-folder",
+  "allow-pick-media",
   # "mobile:readStorage", # Android <= 12
   # "mobile:readMediaImages", # Android >= 13
   # "mobile:readMediaVideo", # Android >= 13

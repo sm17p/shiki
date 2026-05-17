@@ -10,32 +10,23 @@ links = "tauri-plugin-wallpaper"
 
 [dependencies]
 # Required for all plugins
-tauri = { version = "2.10.3", features = [] }
-# Desktop-specific dependencies
-# Windows API bindings
+tauri = { version = "2.11.2", features = [] }
+serde = "1.0"
+thiserror = "2"
+
+[target.'cfg(windows)'.dependencies]
 windows = { version = "0.62.2", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_System_LibraryLoader",
   "Win32_Graphics_Gdi",
   "Win32_Foundation",
-], optional = true }
-# macOS specific (if you decide to use direct Rust bindings, otherwise just FFI)
-# You might not need a specific crate if you bridge to Objective-C directly, or use core Rust
-# You might want to use cocoa/objc crates if you want to avoid raw C/ObjC FFI files.
-
-
-serde = "1.0"
-thiserror = "2"
+] }
 
 [build-dependencies]
-tauri-plugin = { version = "2.5.3", features = ["build"] }
+tauri-plugin = { version = "2.6.2", features = ["build"] }
 
 [features]
-# By default, all features are enabled. Add specific features here if needed.
-# For example, to enable windows-rs only on Windows:
-default = ["windows_support", "linux_support", "mobile_support"] # Add specific features here
-
-# Platform-specific features
-windows_support = ["windows"] # This feature enables the 'windows' crate only on Windows
-linux_support = [] # No specific crates for Linux usually, just shell commands
+default = ["mobile_support"]
+windows_support = []
+linux_support = []
 mobile_support = []

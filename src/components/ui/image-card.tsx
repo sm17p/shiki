@@ -4,11 +4,19 @@ type Props = {
   imageUrl: string;
   caption: string;
   className?: string;
+  children?: React.ReactNode;
   width?: number;
   height?: number;
 };
 
-export default function ImageCard({ imageUrl, caption, className, width, height }: Props) {
+export default function ImageCard({
+  imageUrl,
+  caption,
+  children,
+  className,
+  width,
+  height,
+}: Props) {
   return (
     <figure
       className={cn(
@@ -25,7 +33,8 @@ export default function ImageCard({ imageUrl, caption, className, width, height 
         loading="lazy"
       />
       <figcaption className="border-t-2 text-main-foreground border-border p-4">
-        {caption}
+        <div className="min-w-0 truncate">{caption}</div>
+        {children}
       </figcaption>
     </figure>
   );

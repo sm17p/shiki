@@ -21,7 +21,6 @@ use mobile::Media;
 
 use scheme::handle_shiki_protocol;
 
-
 // / Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the media APIs.
 pub trait MediaExt<R: Runtime> {
     fn media(&self) -> &Media<R>;
@@ -41,7 +40,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             commands::get_media_items,
             commands::check_media_permissions,
             commands::request_media_permissions,
-            commands::pick_folder
+            commands::pick_folder,
+            commands::pick_media
         ])
         .register_asynchronous_uri_scheme_protocol("shiki", handle_shiki_protocol)
         .setup(|app, api| {

@@ -1,23 +1,28 @@
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite-plus";
 
-// @ts-expect-error process is a nodejs global
+const currentDir = dirname(fileURLToPath(import.meta.url));
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [react(), tailwindcss()],
 
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src"),
+      "@": resolve(currentDir, "./src"),
     },
     tsconfigPaths: true,
   },
 
   clearScreen: false,
+
+  build: {
+    chunkSizeWarningLimit: 650,
+  },
 
   server: {
     port: 1420,
@@ -34,4 +39,4 @@ export default defineConfig(async () => ({
       ignored: ["src-tauri"],
     },
   },
-}));
+});

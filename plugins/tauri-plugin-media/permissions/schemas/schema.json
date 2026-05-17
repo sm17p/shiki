@@ -292,6 +292,18 @@
           "markdownDescription": "Denies the pick_folder command without any pre-configured scope."
         },
         {
+          "description": "Enables the pick_media command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-pick-media",
+          "markdownDescription": "Enables the pick_media command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the pick_media command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-pick-media",
+          "markdownDescription": "Denies the pick_media command without any pre-configured scope."
+        },
+        {
           "description": "Enables the request_media_permissions command without any pre-configured scope.",
           "type": "string",
           "const": "allow-request-media-permissions",
@@ -304,10 +316,10 @@
           "markdownDescription": "Denies the request_media_permissions command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the media plugin\n#### This default permission set includes:\n\n- `allow-get-media-items`\n- `allow-check-media-permissions`\n- `allow-request-media-permissions`\n- `allow-pick-folder`",
+          "description": "Default permissions for the media plugin\n#### This default permission set includes:\n\n- `allow-get-media-items`\n- `allow-check-media-permissions`\n- `allow-request-media-permissions`\n- `allow-pick-folder`\n- `allow-pick-media`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the media plugin\n#### This default permission set includes:\n\n- `allow-get-media-items`\n- `allow-check-media-permissions`\n- `allow-request-media-permissions`\n- `allow-pick-folder`"
+          "markdownDescription": "Default permissions for the media plugin\n#### This default permission set includes:\n\n- `allow-get-media-items`\n- `allow-check-media-permissions`\n- `allow-request-media-permissions`\n- `allow-pick-folder`\n- `allow-pick-media`"
         }
       ]
     }

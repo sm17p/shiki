@@ -1,5 +1,5 @@
 // plugins/tauri-plugin-wallpaper/guest-js/index.ts
-import { invoke } from "@tauri-apps/api/core";
+import { addPluginListener, invoke, type PluginListener } from "@tauri-apps/api/core";
 
 export interface WallpaperOptions {
   /**
@@ -35,6 +35,10 @@ export interface WallpaperInfo {
   // Add more properties if you implement retrieval for them
 }
 
+export interface ScreenUnlockedEvent {
+  timestamp: number;
+}
+
 /**
  * Sets the wallpaper to the specified image.
  * @param options - The wallpaper options.
@@ -50,4 +54,10 @@ export async function setWallpaper(options: WallpaperOptions): Promise<void> {
  */
 export async function getWallpaperInfo(screen?: string): Promise<WallpaperInfo> {
   return await invoke("plugin:wallpaper|get_wallpaper_info", { screen });
+}
+
+export async function onScreenUnlocked(
+  callback: (event: ScreenUnlockedEvent) => void,
+): Promise<PluginListener> {
+  return await addPluginListener<ScreenUnlockedEvent>("wallpaper", "screenUnlocked", callback);
 }

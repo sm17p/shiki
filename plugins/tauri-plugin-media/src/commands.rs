@@ -1,8 +1,7 @@
-use crate::{MediaExt, ModelsMediaExt};
 use crate::error::Result;
-use crate::models::{FolderPath, MediaResponse, PermissionResult};
+use crate::models::{FolderPath, MediaItem, MediaResponse, PermissionResult};
+use crate::{MediaExt, ModelsMediaExt};
 use tauri::{AppHandle, Runtime};
-
 
 #[tauri::command]
 pub(crate) async fn get_media_items<R: Runtime>(
@@ -13,24 +12,23 @@ pub(crate) async fn get_media_items<R: Runtime>(
 }
 
 #[tauri::command]
-pub async fn check_media_permissions<R: Runtime>(
-    app: AppHandle<R>,
-) -> Result<PermissionResult> {
+pub async fn check_media_permissions<R: Runtime>(app: AppHandle<R>) -> Result<PermissionResult> {
     app.media().check_permissions()
 }
 
 #[tauri::command]
-pub async fn request_media_permissions<R: Runtime>(
-    app: AppHandle<R>,
-) -> Result<PermissionResult> {
+pub async fn request_media_permissions<R: Runtime>(app: AppHandle<R>) -> Result<PermissionResult> {
     app.media().request_permissions()
 }
 
 #[tauri::command]
-pub async fn pick_folder<R: Runtime>(
-    app: AppHandle<R>,
-) -> Result<FolderPath> {
+pub async fn pick_folder<R: Runtime>(app: AppHandle<R>) -> Result<FolderPath> {
     log::info!("Picking Folder");
     app.media().pick_folder()
 }
 
+#[tauri::command]
+pub async fn pick_media<R: Runtime>(app: AppHandle<R>) -> Result<MediaItem> {
+    log::info!("Picking Media");
+    app.media().pick_media()
+}

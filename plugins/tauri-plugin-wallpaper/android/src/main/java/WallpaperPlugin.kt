@@ -3,11 +3,16 @@ package me.sm17p.shiki.wallpaper
 import android.Manifest
 import android.app.Activity
 import android.app.WallpaperManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import android.webkit.WebView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -15,52 +20,112 @@ import app.tauri.annotation.Permission
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
-import java.io.InputStream
+import app.tauri.plugin.Plugin
+import java.io.ByteArrayInputStream
 import java.io.IOException
 
-// Update your plugin's package and class name if it's not `me.sm17p.shiki.wallpaper.WallpaperPlugin`
-// in your plugin's AndroidManifest.xml and Cargo.toml.
 @TauriPlugin(
     permissions = [
         Permission(strings = [Manifest.permission.SET_WALLPAPER], alias = "setWallpaper")
-        // No runtime permission needed for SET_WALLPAPER on modern Android, but declare it.
-        // If you're reading images from external storage, you'll need READ_EXTERNAL_STORAGE/READ_MEDIA_IMAGES/VIDEO
     ]
 )
 class WallpaperPlugin(private val activity: Activity) : Plugin(activity) {
 
     private val wallpaperManager: WallpaperManager = WallpaperManager.getInstance(activity)
+    private var screenUnlockReceiver: BroadcastReceiver? = null
+
+    @InvokeArg
+    data class WallpaperOptions(
+        val path: String = "",
+        val screen: String? = null,
+        val mode: String? = null
+    )
+
+    override fun load(webView: WebView) {
+        super.load(webView)
+        registerScreenUnlockReceiver()
+    }
+
+    override fun onDestroy(activity: AppCompatActivity) {
+        unregisterScreenUnlockReceiver()
+        super.onDestroy(activity)
+    }
+
+    private fun registerScreenUnlockReceiver() {
+        if (screenUnlockReceiver != null) {
+            return
+        }
+
+        screenUnlockReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != Intent.ACTION_USER_PRESENT) {
+                    return
+                }
+
+                trigger(
+                    "screenUnlocked",
+                    JSObject().put("timestamp", System.currentTimeMillis())
+                )
+            }
+        }
+
+        val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            activity.registerReceiver(screenUnlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            activity.registerReceiver(screenUnlockReceiver, filter)
+        }
+    }
+
+    private fun unregisterScreenUnlockReceiver() {
+        val receiver = screenUnlockReceiver ?: return
+        screenUnlockReceiver = null
+
+        try {
+            activity.unregisterReceiver(receiver)
+        } catch (e: IllegalArgumentException) {
+            Log.w("WallpaperPlugin", "Screen unlock receiver was already unregistered.", e)
+        }
+    }
 
     @Command
     fun setWallpaper(invoke: Invoke) {
-        val imagePath = invoke.getString("path") // Use "path" to match Rust's WallpaperOptions
-        val mode = invoke.getString("mode") // Optional: "fill", "fit", "stretch", "center", "tile" (implement if WallpaperManager allows)
-        val screen = invoke.getString("screen") // Optional: "all", "home", "lock" (implement if WallpaperManager allows)
+        val options = invoke.parseArgs(WallpaperOptions::class.java)
+        val imagePath = options.path
 
-
-        if (imagePath == null) {
+        if (imagePath.isBlank()) {
             invoke.reject("Image path is required.")
             return
         }
 
         try {
             val imageUri = Uri.parse(imagePath)
-            val inputStream: InputStream? = activity.contentResolver.openInputStream(imageUri)
-
-            inputStream?.use { stream ->
-                // WallpaperManager.setStream supports various modes (e.g., FLAG_SET_LOCKSCREEN, FLAG_SET_SYSTEM)
-                // You'd need to map your 'screen' argument to these flags.
-                // For simplicity, let's set system wallpaper by default.
-                // For lock screen: wallpaperManager.setStream(stream, null, true, WallpaperManager.FLAG_SET_LOCKSCREEN)
-                // For home screen: wallpaperManager.setStream(stream, null, true, WallpaperManager.FLAG_SET_SYSTEM)
-                // For both (often default if only one flag is given for specific API levels):
-                wallpaperManager.setStream(stream)
-
-                invoke.resolve()
-                Log.d("WallpaperPlugin", "Wallpaper set successfully from: $imagePath")
-            } ?: run {
-                invoke.reject("Failed to open input stream for image: $imagePath. Check path validity and read permissions.")
+            val bytes = activity.contentResolver.openInputStream(imageUri)?.use { stream ->
+                stream.readBytes()
             }
+
+            if (bytes == null) {
+                invoke.reject("Failed to open input stream for image: $imagePath. Check path validity and read permissions.")
+                return
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                when (options.screen?.lowercase()) {
+                    "lock", "lockscreen" -> setStream(bytes, WallpaperManager.FLAG_LOCK)
+                    "home", "main", "system" -> setStream(bytes, WallpaperManager.FLAG_SYSTEM)
+                    else -> {
+                        setStream(bytes, WallpaperManager.FLAG_SYSTEM)
+                        setStream(bytes, WallpaperManager.FLAG_LOCK)
+                    }
+                }
+            } else {
+                wallpaperManager.setStream(ByteArrayInputStream(bytes))
+            }
+
+            invoke.resolve()
+            Log.d("WallpaperPlugin", "Wallpaper set successfully from: $imagePath")
         } catch (e: SecurityException) {
             Log.e("WallpaperPlugin", "Security Exception: Check if SET_WALLPAPER permission is declared in AndroidManifest.xml.", e)
             invoke.reject("Permission denied: ${e.message}. Ensure SET_WALLPAPER is in manifest.")
@@ -73,14 +138,19 @@ class WallpaperPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    // Android's WallpaperManager doesn't easily expose the current wallpaper path.
-    // It returns Drawables or Bitmaps. Implementing getWallpaperInfo is complex.
-    @Command
-    fun getWallpaperInfo(invoke: Invoke) {
-        invoke.reject("Getting wallpaper info is not directly supported on Android due to API limitations.")
+    private fun setStream(bytes: ByteArray, which: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            wallpaperManager.setStream(ByteArrayInputStream(bytes), null, true, which)
+        } else {
+            wallpaperManager.setStream(ByteArrayInputStream(bytes))
+        }
     }
 
-    // You might still want checkPermissions for any other permissions your plugin might need later.
+    @Command
+    fun getWallpaperInfo(invoke: Invoke) {
+        invoke.resolve(JSObject().put("path", null).put("screen", null))
+    }
+
     @Command
     override fun checkPermissions(invoke: Invoke) {
         val granted = ContextCompat.checkSelfPermission(activity, Manifest.permission.SET_WALLPAPER) == PackageManager.PERMISSION_GRANTED

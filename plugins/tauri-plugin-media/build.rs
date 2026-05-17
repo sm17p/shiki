@@ -1,4 +1,10 @@
-const COMMANDS: &[&str] = &["get_media_items", "check_media_permissions", "request_media_permissions", "pick_folder"];
+const COMMANDS: &[&str] = &[
+    "get_media_items",
+    "check_media_permissions",
+    "request_media_permissions",
+    "pick_folder",
+    "pick_media",
+];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)

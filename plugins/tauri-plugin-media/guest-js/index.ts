@@ -35,11 +35,23 @@ export class ShikiImageLoader {
   }
 
   getThumbnailUrl(contentUri: string): string {
-    return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}?thumbnail=true`;
+    if (this.canLoadDirectly(contentUri)) {
+      return contentUri;
+    }
+
+    return `shiki://localhost/image/${encodeURIComponent(contentUri)}?thumbnail=true`;
   }
 
   getFullImageUrl(contentUri: string): string {
-    return `http://shiki.localhost/image/${encodeURIComponent(contentUri)}`;
+    if (this.canLoadDirectly(contentUri)) {
+      return contentUri;
+    }
+
+    return `shiki://localhost/image/${encodeURIComponent(contentUri)}`;
+  }
+
+  private canLoadDirectly(uri: string): boolean {
+    return uri.startsWith("data:") || uri.startsWith("blob:") || uri.startsWith("http");
   }
 
   async preloadImage(url: string): Promise<boolean> {
@@ -70,4 +82,8 @@ export async function checkPermissions(): Promise<PermissionResult> {
 
 export async function pickFolder(): Promise<FolderPath> {
   return await invoke("plugin:media|pick_folder");
+}
+
+export async function pickMedia(): Promise<MediaItem> {
+  return await invoke("plugin:media|pick_media");
 }

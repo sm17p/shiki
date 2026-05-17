@@ -1,19 +1,16 @@
-/// <reference types="tauri-media-plugin-api" />
+import type { DayOfWeek, ScheduleSettings } from "@/constants";
+import type { MediaItem } from "tauri-plugin-media-api";
 
-interface DaysOfWeek {
-  id: number;
-  code: string;
-  longName: string;
-  shortName: string;
-  active: boolean;
+declare global {
+  interface AppStore {
+    days: DayOfWeek[];
+    schedule: ScheduleSettings;
+    folders: string[];
+    files: MediaItem[];
+    active: string;
+    cursor: number;
+    lastCycleAt: number;
+  }
 }
 
-interface AppStore {
-  days: DaysOfWeek[];
-  min: number;
-  hour: number;
-  schedule: string[];
-  folders: string[];
-  files: MediaItem[];
-  active: string;
-}
+export {};
