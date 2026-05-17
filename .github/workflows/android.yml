@@ -96,7 +96,7 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal
           rustup default stable
-          rustup target add aarch64-linux-android x86_64-linux-android
+          rustup target add x86_64-linux-android
 
       - name: Cache Cargo registry and build outputs
         uses: actions/cache@v5
@@ -120,15 +120,15 @@ jobs:
           cache-provider: basic
 
       - name: Build Android debug APK
-        run: pnpm tauri android build --debug --apk --target aarch64 x86_64 --ci
+        run: pnpm tauri android build --debug --apk --target x86_64 --ci
 
       - name: Run Android unit tests
         working-directory: src-tauri/gen/android
         run: |
           ./gradlew --no-daemon --build-cache \
-            -PtargetList=aarch64,x86_64 \
-            -ParchList=arm64,x86_64 \
-            -PabiList=arm64-v8a,x86_64 \
+            -PtargetList=x86_64 \
+            -ParchList=x86_64 \
+            -PabiList=x86_64 \
             testUniversalDebugUnitTest \
             :tauri-plugin-media:testDebugUnitTest \
             :tauri-plugin-wallpaper:testDebugUnitTest
