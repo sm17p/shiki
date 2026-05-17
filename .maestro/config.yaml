@@ -1,0 +1,3 @@
+flows:
+  - "*.yml"
+testOutputDir: build/maestro-results

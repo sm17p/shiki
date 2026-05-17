@@ -1,0 +1,252 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/android.yml"
+      - ".maestro/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "plugins/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - ".github/workflows/android.yml"
+      - ".maestro/**"
+      - "src/**"
+      - "src-tauri/**"
+      - "plugins/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "vite.config.ts"
+      - "tsconfig*.json"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_API_LEVEL: "36"
+  ANDROID_BUILD_TOOLS_VERSION: "36.0.0"
+  ANDROID_CMAKE_VERSION: "3.31.5"
+  ANDROID_EMULATOR_API_LEVEL: "34"
+  ANDROID_EMULATOR_ARCH: x86_64
+  ANDROID_EMULATOR_TARGET: default
+  ANDROID_NDK_VERSION: "27.2.12479018"
+  ANDROID_RUST_TARGET: x86_64-linux-android
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/.android/sdk
+  ANDROID_TEST_APK: src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
+  ANDROID_HOME: ${{ github.workspace }}/.android/sdk
+  CARGO_INCREMENTAL: "0"
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  CARGO_TERM_COLOR: always
+  GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+  MAESTRO_VERSION: "2.5.1"
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_SIZE: "5G"
+
+jobs:
+  android:
+    name: Build and Test Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Restore Android SDK cache
+        id: android-sdk-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .android/sdk
+          key: android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-emulator-${{ env.ANDROID_EMULATOR_API_LEVEL }}-${{ env.ANDROID_EMULATOR_TARGET }}-${{ env.ANDROID_EMULATOR_ARCH }}-build-tools-${{ env.ANDROID_BUILD_TOOLS_VERSION }}-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}
+          restore-keys: |
+            android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-
+            android-sdk-${{ runner.os }}-
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.1
+        with:
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
+            "ndk;${ANDROID_NDK_VERSION}" \
+            "cmake;${ANDROID_CMAKE_VERSION}"
+
+      - name: Save Android SDK cache
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true' && steps.android-sdk-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: .android/sdk
+          key: ${{ steps.android-sdk-cache.outputs.cache-primary-key }}
+
+      - name: Set Android local properties
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          printf 'sdk.dir=%s\nndk.dir=%s\n' \
+            "$ANDROID_SDK_ROOT" \
+            "${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" | tee local.properties src-tauri/gen/android/local.properties
+
+      - name: Set up Rust Android targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add "${ANDROID_RUST_TARGET}"
+
+      - name: Restore Cargo registry cache
+        id: cargo-registry-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: |
+            ~/.cargo/git/db
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+          key: cargo-${{ runner.os }}-android-${{ env.ANDROID_RUST_TARGET }}-ndk-${{ env.ANDROID_NDK_VERSION }}-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-android-
+            cargo-${{ runner.os }}-
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build Android debug APK
+        run: pnpm tauri android build --debug --apk --target x86_64 --ci
+
+      - name: Save Cargo registry cache
+        if: always() && steps.cargo-registry-cache.outputs.cache-hit != 'true' && steps.cargo-registry-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: |
+            ~/.cargo/git/db
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+          key: ${{ steps.cargo-registry-cache.outputs.cache-primary-key }}
+
+      - name: Run Android unit tests
+        working-directory: src-tauri/gen/android
+        run: |
+          ./gradlew --no-daemon --build-cache \
+            -PtargetList=x86_64 \
+            -ParchList=x86_64 \
+            -PabiList=x86_64 \
+            testUniversalDebugUnitTest \
+            :tauri-plugin-media:testDebugUnitTest \
+            :tauri-plugin-wallpaper:testDebugUnitTest
+
+      - name: Cache Maestro CLI
+        uses: actions/cache@v5
+        with:
+          path: ~/.maestro
+          key: maestro-cli-${{ runner.os }}-${{ env.MAESTRO_VERSION }}
+
+      - name: Install Maestro
+        shell: bash
+        run: |
+          if [ ! -x "$HOME/.maestro/bin/maestro" ] || ! "$HOME/.maestro/bin/maestro" --version | grep -q "$MAESTRO_VERSION"; then
+            export MAESTRO_VERSION
+            curl -fsSL "https://get.maestro.mobile.dev" | bash
+          fi
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Maestro smoke tests
+        uses: reactivecircus/android-emulator-runner@v2.37.0
+        with:
+          api-level: ${{ env.ANDROID_EMULATOR_API_LEVEL }}
+          target: ${{ env.ANDROID_EMULATOR_TARGET }}
+          arch: ${{ env.ANDROID_EMULATOR_ARCH }}
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            mkdir -p build
+            adb install -r "$ANDROID_TEST_APK"
+            maestro test --format junit --output build/maestro-report.xml --test-output-dir build/maestro-results .maestro
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-test-reports
+          path: |
+            src-tauri/gen/android/**/build/reports/tests/
+            src-tauri/gen/android/**/build/test-results/
+            build/maestro-report.xml
+            build/maestro-results/
+          if-no-files-found: ignore
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: shiki-android-debug-apk
+          path: ${{ env.ANDROID_TEST_APK }}
+          if-no-files-found: error
+
+      - name: Print sccache stats
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${SCCACHE_PATH:-}" ]; then
+            "$SCCACHE_PATH" --show-stats
+          fi
