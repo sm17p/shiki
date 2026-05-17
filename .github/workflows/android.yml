@@ -1,0 +1,150 @@
+name: Android CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_API_LEVEL: "36"
+  ANDROID_BUILD_TOOLS_VERSION: "36.0.0"
+  ANDROID_NDK_VERSION: "27.2.12479018"
+  ANDROID_SDK_ROOT: ${{ github.workspace }}/.android/sdk
+  ANDROID_HOME: ${{ github.workspace }}/.android/sdk
+  CARGO_INCREMENTAL: "0"
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  CARGO_TERM_COLOR: always
+  GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.daemon=false"
+  RUSTC_WRAPPER: sccache
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_SIZE: "5G"
+
+jobs:
+  android:
+    name: Build and Test Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Cache Android SDK
+        uses: actions/cache@v5
+        with:
+          path: .android/sdk
+          key: android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-build-tools-${{ env.ANDROID_BUILD_TOOLS_VERSION }}-ndk-${{ env.ANDROID_NDK_VERSION }}
+          restore-keys: |
+            android-sdk-${{ runner.os }}-api-${{ env.ANDROID_API_LEVEL }}-
+            android-sdk-${{ runner.os }}-
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.1
+        with:
+          packages: |
+            platform-tools
+            platforms;android-${{ env.ANDROID_API_LEVEL }}
+            build-tools;${{ env.ANDROID_BUILD_TOOLS_VERSION }}
+            ndk;${{ env.ANDROID_NDK_VERSION }}
+            cmake;3.31.5
+
+      - name: Set Android local properties
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          printf 'sdk.dir=%s\nndk.dir=%s\n' \
+            "$ANDROID_SDK_ROOT" \
+            "${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}" | tee local.properties src-tauri/gen/android/local.properties
+
+      - name: Set up Rust Android targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-linux-android x86_64-linux-android
+
+      - name: Cache Cargo registry and build outputs
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/git/db
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+            target
+          key: cargo-${{ runner.os }}-android-${{ hashFiles('Cargo.lock', '**/Cargo.toml') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-android-
+            cargo-${{ runner.os }}-
+
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build Android debug APK
+        run: pnpm tauri android build --debug --apk --target aarch64 x86_64 --ci
+
+      - name: Run Android unit tests
+        working-directory: src-tauri/gen/android
+        run: |
+          ./gradlew --no-daemon --build-cache \
+            -PtargetList=aarch64,x86_64 \
+            -ParchList=arm64,x86_64 \
+            -PabiList=arm64-v8a,x86_64 \
+            testUniversalDebugUnitTest \
+            :tauri-plugin-media:testDebugUnitTest \
+            :tauri-plugin-wallpaper:testDebugUnitTest
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-test-reports
+          path: |
+            src-tauri/gen/android/**/build/reports/tests/
+            src-tauri/gen/android/**/build/test-results/
+          if-no-files-found: ignore
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: shiki-android-debug-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - name: Print sccache stats
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${SCCACHE_PATH:-}" ]; then
+            "$SCCACHE_PATH" --show-stats
+          fi
